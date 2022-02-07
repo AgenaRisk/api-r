@@ -58,6 +58,17 @@ Network <- setRefClass("Network",
                          })
                        )
 
+#Dataset object as an R reference class
+#id: id of the "scenario"
+#observations: set of observations (values / states) for all the observed Nodes in the Model
+#results: set of result values / posteriors for all the Nodes in the Model
+Dataset <- setRefClass("Dataset",
+                       fields = list(id = "character",
+                                observations = "list",
+                                results = "list")) #these Dataset objects will be compatible with a reasonable data input file / csv to create them
+
+
+
 #Model object as an R reference class
 #One CMPX file corresponds to one R Model instance
 Model <- setRefClass("Model",
@@ -81,6 +92,9 @@ from_cmpx <- function(modelPath){
   networks <- vector(mode = "list",length = length(cmpx_networks))
   nodes <- vector(mode = "list",length = length(cmpx_networks))
   links <- vector(mode = "list",length = length(cmpx_networks))
+  datasets <- vector(mode = "list",length = length(cmpx_dataSets))
+  observations <- vector(mode = "list",length = length(cmpx_dataSets))
+  results <- vector(mode = "list",length = length(cmpx_dataSets))
   
   #filling in the list of Network objects with each network in the CMPX model, ID is required
   for (i in 1:length(cmpx_networks)){
@@ -248,10 +262,24 @@ from_cmpx <- function(modelPath){
     }
   }
   
-
-  outputModel <- Model$new(networks = networks)
-
+  for (i in 1:length(cmpx_dataSets)){
+    datasets[[i]] <- Dataset$new(id = cmpx_dataSets[[i]]$id)
+    
+    datasets[[i]]$observations <- cmpx_dataSets[[i]]$observations
+  }
+  
+  outputModel <- Model$new(networks = networks,
+                           networkLinks = cmpx_networkLinks,
+                           dataSets = datasets)
+  
   return(outputModel)
 }
 
+
+for (ntw in networks){
+  cat("Nodes in ",ntw$id,":\n")
+  for (nd in ntw$nodes){
+    cat(nd$id,"\n")
+  }
+}
 
