@@ -10,3 +10,5 @@ modelPath <- "Models/AdvancedReliabilityModelling.cmpx"
 modelPath <- "Models/CarCosts.cmpx"
 ###
 
+car_model <- from_cmpx("Models/CarCosts.cmpx")
+
