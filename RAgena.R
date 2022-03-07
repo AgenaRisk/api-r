@@ -17,7 +17,7 @@ Node <- setRefClass("Node",
                                   name = "character",
                                   description = "character",
                                   type = "character",
-                                  parents = "character",
+                                  parents = "list",
                                   simulated = "logical",
                                   distr_type = "character",
                                   states = "character",
@@ -36,46 +36,64 @@ Node <- setRefClass("Node",
                         cat("\nPrior distribution type:",.self$distr_type)
                         
                       },
-                      initialize = function(id,name=NULL,description=NULL,type=NULL,simulated=FALSE,parents=NULL,distr_type=NULL,states=NULL,probabilities=NULL,expressions=NULL,partitions=NULL){
+                      initialize = function(id,name=NULL,description=NULL,type=NULL,simulated=FALSE,states=NULL){
+                        
+                        'Creates a new Node object, a unique id is required, other fields are filled with defaults unless specified.
+                        Node id, name, description, type, states, and whether it is a simulation or regular node do not depend on its edges and parents in a network,
+                        a Node object can be defined with all this information outside a Network as well.
+                        To add/remove/modify parents, distr_type, probabilities, expressions, and partitions; use the corresponding method.'
                         
                         #assigning $id - mandatory input to create a new Node object
                         .self$id <<- id
                         
                         #assigning $name - input name if given, id otherwise
                         if(is.null(name)){
-                          .self$name <<-id
+                          .self$name <<- id
                         } else{
                           .self$name <<- name
                         }
                         
                         #assigning $description - input desc if given, New Node Object otherwise
                         if(is.null(description)){
-                          .self$description <<- "New Node Object"
+                          .self$description <<- "New Node"
                         } else {
                           .self$description <<- description
                         }
                         
                         #setting $simulated - false by default
                         if(simulated){
-                          .self$simulated <<-TRUE
+                          .self$simulated <<- TRUE
                         } else {
                           .self$simulated <<- FALSE
                         }
                         
                         #setting $type - Boolean by default, input type if given correctly
-                        if(is.null(type)){
-                          .self$type <<- "Boolean"
+                        if(.self$simulated){
+                          if(is.null(type)){
+                            .self$type <<- "ContinuousInterval"
+                          } else {
+                            if(type == "IntegerInterval"){
+                              .self$type <<- type
+                            } else {
+                              .self$type <<- "ContinuousInterval"
+                            }
+                          }
                         } else {
-                          if(type=="Labelled" || type=="Ranked" || type=="DiscreteReal" || type=="ContinuousInterval" || type=="IntegerInterval") {
-                            .self$type <<- type
-                          } else{
+                          if(is.null(type)){
                             .self$type <<- "Boolean"
+                          } else {
+                            if(type=="Labelled" || type=="Ranked" || type=="DiscreteReal" || type=="ContinuousInterval" || type=="IntegerInterval") {
+                              .self$type <<- type
+                            } else{
+                              .self$type <<- "Boolean"
+                            }
                           }
                         }
+
                         
                         #setting $states - null if simulated, depends on type if not simulated
                         if(.self$simulated){
-                          .self$states <<- NULL
+                          .self$states <<- character(0)
                         } else {
                           if(is.null(states)){ #if no states given, set defaults based on type
                             if(.self$type == "Boolean"){
@@ -102,82 +120,121 @@ Node <- setRefClass("Node",
                           } 
                         }
                         
-                        #assigning $parents - they're not Node objects, ids of other Nodes
-                        if(!is.null(parents)){
-                          .self$parents <<- parents
-                        }
-                        
-                        #assigning $distr_type - if not simulated, Manual by default; if simulated Expression by default
+                        #sensible defaults are assigned to probabilitiess/expressions which will be rewritten with the specific methods
                         if(.self$simulated){
-                          if(is.null(distr_type)){
+                          .self$distr_type <<- "Expression"
+                          .self$expressions <<- "Normal(0,1000000)"
+                        } else {
+                          if(.self$type == "ContinuousInterval" || .self$type == "IntegerInterval"){
                             .self$distr_type <<- "Expression"
+                            .self$expressions <<- "Normal(0,1000000)"
                           } else {
-                            if(distr_type == "Partitioned" && length(.self$parents) > 0){
-                              .self$distr_type <<- "Partitioned"
-                            } else {
-                              .self$distr_type <<- "Expression"
-                            }
-                          }
-                        } else{
-                          if(is.null(distr_type)){
                             .self$distr_type <<- "Manual"
-                          } else{
-                            if(distr_type == "Manual" || distr_type == "Expression"){
-                              .self$distr_type <<- distr_type
-                            } else if(distr_type == "Partitioned"){
-                              if(length(.self$parents > 0)){ #if Node has no parents, do not allow Partitioned
-                                .self$distr_type <<- distr_type
-                              } else {
-                                .self$distr_type <<- "Expression"
-                              }
-                            } else {
-                              .self$distr_type <<- "Manual" #if incorrect input, set it to default Manual
+                            .self$probabilities <<- vector(mode = "list", length = length(.self$states))
+                            for (i in 1:length(.self$probabilities)){
+                              probabilities[[i]] <<- 1/length(.self$probabilities)
                             }
                           }
                         }
-                        
-                        #assigning $partitions based on distr_type and number of parents
-
-                        
-                        #assigning $probabilities based on distr_type and number of parents
-                        if(.self$simulated){
-                          .self$probabilities <- NULL
-                          if(.self$distr_type == "Expression"){
-                            .self$partitions <- NULL
-                            if(is.null(expressions)){
-                              .self$expressions <<- "Normal(0,1000000)"
-                            } else {
-                              if(length(expressions) == 1){
-                                .self$expressions <<- expressions
-                              } else {
-                                .self$expressions <<- "Normal(0,1000000)"
-                              }
-                            }
-                          } else if(.self$distr_type == "Partitioned"){
-                            if(is.null(partitions)){
-                              .self$distr_type == "Expression" #if no partitions given, convert Node to Expression
-                            } else {
-                              .self$partitions <<- partitions ###will need to make sure these are all from parent ids###
-                              
-                            }
-                          }
-                        } else { #if not simulated
-                          
-                        }
-                        
-                        
-                        #assigning $expressions based on distr_type and number of parents
-                        
-                        #assigning $partitions based on distr_type and number of parents
                         
                         },
                       addParent = function(newParent){
-                        'Adds a new parent Node to the current Node by their ids'
-                        if(!(newParent %in% parents)){
+                        'Adds a Node object as a new parent node to the current Node object.
+                        Parents list of a Node object is a list of other Node objects.
+                        Variable name is used as a reference to the Node to be added as a parent here.
+                        A good practice is to use Node ids as their variable names.'
+                        temp_par_list <- c()
+                        for (pr in .self$parents){
+                          temp_par_list <- append(temp_par_list,pr$id)
+                        }
+                        if (!(newParent$id %in% temp_par_list)){
                           parents <<- append(parents,newParent)
-                          #need to adjust NPT now (probs,exprs,partts)
                         }
                         
+                        #need to resize / reset size of probs/exprs table when parent added
+
+                      },
+                      addParent_byID = function(newParentID, varList){
+                        'A method to add parent Nodes by their ids mainly for cmpx parser capabilities.
+                        To add parents to Node objects, the use of $addParent(Node) is recommended.'
+                        
+                        for (i in 1:length(varList)){
+                          if(newParentID == varList[[i]]$id){
+                            .self$addParent(varList[[i]])
+                          }
+                        }
+                        
+                        ######need to resize / reset size of probs/exprs table when parent added
+                      },
+                      removeParent = function(oldParentID){
+                        'A method to remove one of the existing parents of a Node object.
+                        Current parent Nodes are referred to by their ids.'
+                        for (i in 1:length(.self$parents)){
+                          if(oldParentID == .self$parents[[i]]$id){
+                            .self$parents <<- .self$parents[-i]
+                          }
+                        }
+                        
+                        ######need to resize / reset size of probs/exprs table when parent removed
+                      },
+                      setDistributionType = function(new_distr_type){
+                        'A method to set the distribution type of a Node for the table configurations.'
+                        
+                        if(.self$simulated){
+                          if(new_distr_type == "Partitioned" && length(.self$parents) > 0){
+                              distr_type <<- "Partitioned" ######if successfully changed to Partitioned, we need to reset temp default expressions
+                            } else {
+                              distr_type <<- "Expression"
+                            }
+                        } else{
+                          if(new_distr_type == "Manual" || new_distr_type == "Expression"){
+                            distr_type <<- new_distr_type
+                          } else if(new_distr_type == "Partitioned"){ ######if successfully changed to Partitioned, we need to reset temp default expressions
+                              if(length(.self$parents > 0)){ 
+                                distr_type <<- new_distr_type
+                              } else { 
+                                distr_type <<- "Expression" #if Node has no parents, do not allow Partitioned
+                              }
+                            } else {
+                              distr_type <<- "Manual" #if incorrect input, set it to default Manual
+                            }
+                        }
+                        
+                        #####need to re-adjust probabilities / expressions etc. if the distr_type is changed
+                      },
+                      setProbabilities = function(new_probs){
+                        if(!.self$simulated && .self$distr_type == "Manual" && (.self$type != "ContinuousInterval" || .self$type != "IntegerInterval")){
+                          if(length(new_probs) == length(.self$states)){
+                            temp_length <- 1
+                            if(length(.self$parents)>0){
+                              for (prt in .self$parents){
+                                temp_length <- temp_length * length(prt$states)
+                              }
+                            }
+
+                            subset_length_control <- 1
+                            for (subset in new_probs){
+                              if(length(subset) == temp_length){
+                                subset_length_control <- subset_length_control * 1
+                              } else {
+                                subset_length_control <- subset_length_control * 0
+                              }
+                            }
+                            
+                            ######need another control to check probability sums are 1
+                            if(subset_length_control == 1){
+                              probabilities <<- new_probs
+                            }
+                          }
+                        }
+                      },
+                      setExpressions = function(new_expr,partition_parents=NULL){
+                        if(!is.null(partition_parents)){
+                          partitions <<- partition_parents ######need to check these are in Node's parents list
+                          expressions <<- new_expr ######need to check length of exprs is equal to parent_states_product
+                        } else {
+                            expressions <<- new_expr ######need to make sure length of exprs is 1 if not partitioned
+                        }
                       })
                     )
 
@@ -187,11 +244,40 @@ Network <- setRefClass("Network",
                        fields = list(id = "character",
                                      name = "character",
                                      description = "character",
-                                     nodes = "list",
-                                     links = "list"),
+                                     nodes = "list"),
                        methods = list(
                          show = function(){
                            cat("Bayesian Network: \"",.self$name,"\"\nID:",.self$id,"\nDescription:",.self$description)
+                         },
+                         initialize = function(id,name=NULL,description=NULL,nodes=NULL){
+                           
+                           #assigning $id - mandatory input to create a new Network object
+                           .self$id <<- id
+                           
+                           #assigning $name - input name if given, id otherwise
+                           if(is.null(name)){
+                             .self$name <<- id
+                           } else{
+                             .self$name <<- name
+                           }
+                           
+                           #assigning $description - input desc if given, New Node Object otherwise
+                           if(is.null(description)){
+                             .self$description <<- "New Network"
+                           } else {
+                             .self$description <<- description
+                           }
+                           
+                           if(!is.null(nodes)){
+                             .self$nodes <<- nodes
+                           }
+                         },
+                         addNode = function(newNode){
+                           'add new Node to Network'
+                         },
+                         removeNode = function(oldNode){
+                           'remove Node from Network'
+                           ######need to make sure this is in sync with Node$parents, when a Node is removed from Network what happens to its parents/children?
                          })
                        )
 
@@ -214,7 +300,7 @@ Model <- setRefClass("Model",
                                    networkLinks = "list"
                                    )) #still needs the show() function
 
-#function to read input CMPX file to create BNModel and its BNNodes
+#function to read input CMPX file to create Model and its Networks and their Nodes
 from_cmpx <- function(modelPath){
   
   #read CMPX file, assign elements to R lists
@@ -233,159 +319,47 @@ from_cmpx <- function(modelPath){
   observations <- vector(mode = "list",length = length(cmpx_dataSets))
   results <- vector(mode = "list",length = length(cmpx_dataSets))
   
-  #filling in the list of Network objects with each network in the CMPX model, ID is required
+  #filling in the list of Network objects with each network in the CMPX model
   for (i in 1:length(cmpx_networks)){
-    networks[[i]] <- Network$new(id = cmpx_networks[[i]]$id)
+    networks[[i]] <- Network$new(id = cmpx_networks[[i]]$id,
+                                 name = cmpx_networks[[i]]$name,
+                                 description = cmpx_networks[[i]]$description)
     
-    #if name and description are given, they're parsed for corresponding Network object attributes. if not, name is same as ID and description is left blank
-    
-    #Network$name
-    if(!is.null(cmpx_networks[[i]]$name)){
-      networks[[i]]$name <- cmpx_networks[[i]]$name
-    } else {
-      networks[[i]]$name <- cmpx_networks[[i]]$id #if there's no network name, Network$name is same as Network$id
-    }
-    #Network$description
-    if(!is.null(cmpx_networks[[i]]$description)){
-      networks[[i]]$description <- cmpx_networks[[i]]$description
-    }
-    
-    #filling in the list of Node objects with each node of each network, ID is required
+
+    #filling in the list of Node objects with each node of each network
     #keep in mind this list is two dimensional, each list element is a list of Nodes itself
     for (j in 1:length(cmpx_networks[[i]]$nodes)){
       nodes[[i]][[j]] <- Node$new(id = cmpx_networks[[i]]$nodes[[j]]$id,
-                                  description = cmpx_networks[[i]]$nodes[[j]]$description)
-      
-      #if the following optional attributes are given, they're parsed for corresponding Node object attributes. if not, corresponding Node attribute is left blank
-      
-      #Node$name
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$name)){
-        nodes[[i]][[j]]$name <- cmpx_networks[[i]]$nodes[[j]]$name
-      }else{
-        nodes[[i]][[j]]$name <- cmpx_networks[[i]]$nodes[[j]]$id #if there's no node name, Node$name is same as Node$id
-      }
-      
-      #Node$description
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$description)){
-        nodes[[i]][[j]]$description <- cmpx_networks[[i]]$nodes[[j]]$description
-      }
-      
-      #Node$type
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$type)){
-        nodes[[i]][[j]]$type <- cmpx_networks[[i]]$nodes[[j]]$configuration$type
-      }
-      
-      #Node$simulated
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$simulated) && cmpx_networks[[i]]$nodes[[j]]$configuration$simulated==TRUE){
-        nodes[[i]][[j]]$simulated <- TRUE
-      }else{
+                                  name = cmpx_networks[[i]]$nodes[[j]]$name,
+                                  description = cmpx_networks[[i]]$nodes[[j]]$description,
+                                  type = cmpx_networks[[i]]$nodes[[j]]$configuration$type)
+                                  
+      if(is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$simulated)){
         nodes[[i]][[j]]$simulated <- FALSE
+      } else{
+        nodes[[i]][[j]]$simulated <- TRUE
       }
       
-      #Node$distr_type
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$type)){
-        nodes[[i]][[j]]$distr_type <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$type
-      }
+      nodes[[i]][[j]]$distr_type = cmpx_networks[[i]]$nodes[[j]]$configuration$table$type
       
-      #Node$states, Node$probabilities, Node$expressions, and Node$partitions depend on Node$simulated and Node$distr_type
-      
-      #if Node is NOT SIMULATED... 
-      if(nodes[[i]][[j]]$simulated == FALSE){
-        #...and distribution type is MANUAL
-        if(nodes[[i]][[j]]$distr_type=="Manual"){
-          #Node$states and Node$probabilities are filled in
-          #Node$expressions and Node$partitions are NULL
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)){
-            nodes[[i]][[j]]$states <- cmpx_networks[[i]]$nodes[[j]]$configuration$states
-            nodes[[i]][[j]]$probabilities <- vector(mode = "list", length = length(nodes[[i]][[j]]$states))
-          }
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities)){
-            for (k in 1:length(nodes[[i]][[j]]$states)) {
-              nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
-            }
-            
-            # if(length(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[1]])==1){
-            #   nodes[[i]][[j]]$probabilities <- list(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities)
-            # }else{
-            #   nodes[[i]][[j]]$probabilities <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities
-            # }
-          }
-        }
-        #...and distribution type is EXPRESSION
-        if(nodes[[i]][[j]]$distr_type=="Expression"){
-          #Node$states, Node$probabilities, and Node$expressions (one element) are filled in
-          #Node$partitions is NULL
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)){
-            nodes[[i]][[j]]$states <- cmpx_networks[[i]]$nodes[[j]]$configuration$states
-            nodes[[i]][[j]]$probabilities <- vector(mode = "list", length = length(nodes[[i]][[j]]$states))
-          }
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities)){
-            for (k in 1:length(nodes[[i]][[j]]$states)) {
-              nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
-            }
-            # if(length(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[1]])==1){
-            #   nodes[[i]][[j]]$probabilities <- list(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities)
-            # }else{
-            #   nodes[[i]][[j]]$probabilities <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities
-            # }
-          }
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)){
-            nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
-          }
-        }
-        #... and distribution type is PARTITIONED
-        if(nodes[[i]][[j]]$distr_type=="Partitioned"){
-          #Node$states, Node$probabilities, Node$expressions (many elements), and Node$partitions are filled in
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)){
-            nodes[[i]][[j]]$states <- cmpx_networks[[i]]$nodes[[j]]$configuration$states
-            nodes[[i]][[j]]$probabilities <- vector(mode = "list", length = length(nodes[[i]][[j]]$states))
-          }
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities)){
-            for (k in 1:length(nodes[[i]][[j]]$states)) {
-              nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
-            }
-            # if(length(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[1]])==1){
-            #   nodes[[i]][[j]]$probabilities <- list(cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities)
-            # }else{
-            #   nodes[[i]][[j]]$probabilities <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities
-            # }
-          }
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)){
-            nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
-          }
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions)){
-            nodes[[i]][[j]]$partitions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions
-          }
+      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)){
+        nodes[[i]][[j]]$states <- cmpx_networks[[i]]$nodes[[j]]$configuration$states
+        nodes[[i]][[j]]$probabilities <- vector(mode = "list", length = length(nodes[[i]][[j]]$states))
+        for (k in 1:length(nodes[[i]][[j]]$states)){
+          nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
         }
       }
+
+      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)){
+        nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
+      }
       
-      #if Node is SIMULATED... 
-      if(nodes[[i]][[j]]$simulated == TRUE){
-        #...and distribution type is EXPRESSION
-        if(nodes[[i]][[j]]$distr_type=="Expression"){
-          #Node$expression (one element) is filled in
-          #Node$states, Node$probabilities, and Node$partitions are NULL
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)){
-            nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
-          }
-        }
-        #... and distribution type is PARTITIONED
-        if(nodes[[i]][[j]]$distr_type=="Partitioned"){
-          #Node$expression (many elements) and Node$partitions are filled in
-          #Node$states and Node$probabilities are NULL
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)){
-            nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
-          }
-          if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions)){
-            nodes[[i]][[j]]$partitions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions
-          }
-        }
+      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions)){
+        nodes[[i]][[j]]$partitions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions
       }
     }
     
-    # assigning all the Nodes to the nodes attribute of the correct Network objects
     networks[[i]]$nodes <- nodes[[i]]
-    
     links[[i]] <- cmpx_networks[[1]]$links
   }
   
@@ -393,7 +367,7 @@ from_cmpx <- function(modelPath){
     for (j in 1:length(networks[[i]]$nodes)){
       for (k in 1:length(links[[i]])){
         if (links[[i]][[k]]$child == networks[[i]]$nodes[[j]]$id){
-          networks[[i]]$nodes[[j]]$addParent(links[[i]][[k]]$parent)
+          networks[[i]]$nodes[[j]]$addParent_byID(links[[i]][[k]]$parent,networks[[i]]$nodes)
         }
       }
     }
