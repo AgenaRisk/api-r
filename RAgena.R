@@ -151,7 +151,30 @@ Node <- setRefClass("Node",
                           parents <<- append(parents,newParent)
                         }
                         
-                        #need to resize / reset size of probs/exprs table when parent added
+                        
+                        if(.self$distr_type == "Manual"){
+                          #update probabilities when parent added (reset to uniform with correct number of values)
+                          updated_probs <- vector(mode = "list",length = length(.self$states))
+                          temp_length <- 1
+                          if(length(.self$parents)>0){
+                            for (prt in .self$parents){
+                              temp_length <- temp_length * length(prt$states)
+                            }
+                          }
+                          
+                          .self$setProbabilities(updated_probs)
+                          for (i in 1:length(.self$probabilities)){
+                            probabilities[[i]] <<- rep(1/length(.self$probabilities),temp_length)
+                          }
+                          
+                          cat("Node",newParent$id,"has been added to the parents list of",.self$id,".\nNPT values for",.self$id,"are reset to uniform.\n")
+                        } else {
+                          cat("Node",newParent$id,"has been added to the parents list of",.self$id,".\nNow you can use",newParent$id,"in the expression of",.self$id,".\n")
+                        }
+
+
+                        ######need to do the update for expressions
+
 
                       },
                       addParent_byID = function(newParentID, varList){
@@ -171,9 +194,47 @@ Node <- setRefClass("Node",
                         Current parent Nodes are referred to by their ids.'
                         for (i in 1:length(.self$parents)){
                           if(oldParentID == .self$parents[[i]]$id){
-                            .self$parents <<- .self$parents[-i]
+                            parents <<- .self$parents[-i]
                           }
                         }
+                        
+                        if(.self$distr_type == "Manual"){
+                          updated_probs <- vector(mode = "list",length = length(.self$states))
+                          temp_length <- 1
+                          if(length(.self$parents)>0){
+                            for (prt in .self$parents){
+                              temp_length <- temp_length * length(prt$states)
+                            }
+                          }
+                          
+                          .self$setProbabilities(updated_probs)
+                          for (i in 1:length(.self$probabilities)){
+                            probabilities[[i]] <<- rep(1/length(.self$probabilities),temp_length)
+                          }
+                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,".\nNPT values for",.self$id,"are reset to uniform.\n")
+                        } else if (.self$distr_type == "Partitioned") {
+                          if(oldParentID %in% .self$partitions){
+                            partitions <<- partitions[partitions != oldParentID]
+                            temp_length <- 1
+                            if(length(.self$partitions)>0){
+                              for (pt in .self$partitions){
+                                for (prt in .self$parents){
+                                  if(pt == prt$id){
+                                    temp_length <- temp_length * length(prt$states)
+                                  }
+                                }
+                              }
+                            }
+                            expressions <<- rep("Normal(0,1000000)",temp_length)
+                            cat("Node",oldParentID,"has been removed from the parents list of",.self$id,".\nPartitioned expressions for",.self$id,"are reset to Normal distribution.\n")
+                          } else {
+                            cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\n")
+                          }
+                        } else {
+                          expressions <<- "Normal(0,1000000)"
+                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,".\nExpression for",.self$id,"is reset to Normal distribution.\n")
+                        }
+
                         
                         ######need to resize / reset size of probs/exprs table when parent removed
                       },
@@ -185,6 +246,7 @@ Node <- setRefClass("Node",
                               distr_type <<- "Partitioned" ######if successfully changed to Partitioned, we need to reset temp default expressions
                             } else {
                               distr_type <<- "Expression"
+                              cat("Node",.self$id,"has no parents. Distribution type is set to Expression instead.\n")
                             }
                         } else{
                           if(new_distr_type == "Manual" || new_distr_type == "Expression"){
@@ -194,9 +256,11 @@ Node <- setRefClass("Node",
                                 distr_type <<- new_distr_type
                               } else { 
                                 distr_type <<- "Expression" #if Node has no parents, do not allow Partitioned
+                                cat("Node",.self$id,"has no parents. Distribution type is set to Expression instead.\n")
                               }
                             } else {
                               distr_type <<- "Manual" #if incorrect input, set it to default Manual
+                              cat("Incorrect input. Distribution type is set to Manual instead.\n")
                             }
                         }
                         
