@@ -36,9 +36,146 @@ Node <- setRefClass("Node",
                         cat("\nPrior distribution type:",.self$distr_type)
                         
                       },
+                      initialize = function(id,name=NULL,description=NULL,type=NULL,simulated=FALSE,parents=NULL,distr_type=NULL,states=NULL,probabilities=NULL,expressions=NULL,partitions=NULL){
+                        
+                        #assigning $id - mandatory input to create a new Node object
+                        .self$id <<- id
+                        
+                        #assigning $name - input name if given, id otherwise
+                        if(is.null(name)){
+                          .self$name <<-id
+                        } else{
+                          .self$name <<- name
+                        }
+                        
+                        #assigning $description - input desc if given, New Node Object otherwise
+                        if(is.null(description)){
+                          .self$description <<- "New Node Object"
+                        } else {
+                          .self$description <<- description
+                        }
+                        
+                        #setting $simulated - false by default
+                        if(simulated){
+                          .self$simulated <<-TRUE
+                        } else {
+                          .self$simulated <<- FALSE
+                        }
+                        
+                        #setting $type - Boolean by default, input type if given correctly
+                        if(is.null(type)){
+                          .self$type <<- "Boolean"
+                        } else {
+                          if(type=="Labelled" || type=="Ranked" || type=="DiscreteReal" || type=="ContinuousInterval" || type=="IntegerInterval") {
+                            .self$type <<- type
+                          } else{
+                            .self$type <<- "Boolean"
+                          }
+                        }
+                        
+                        #setting $states - null if simulated, depends on type if not simulated
+                        if(.self$simulated){
+                          .self$states <<- NULL
+                        } else {
+                          if(is.null(states)){ #if no states given, set defaults based on type
+                            if(.self$type == "Boolean"){
+                              .self$states <<- c("False", "True") #Boolean type default states
+                            } else if(.self$type == "Ranked"){
+                              .self$states <<- c("Low", "Medium", "High") #Ranked type default states
+                            } else if(.self$type == "Labelled"){
+                              .self$states <<- c("False", "True") #Labelled type default states
+                            } else if(.self$type =="DiscreteReal"){
+                              .self$states <<- c("0.0","1.0") #DiscreteReal type default states
+                            }
+                          } else { #if input states given, check if it's fine based on type
+                            if(.self$type == "Boolean"){
+                              if(length(states) == 2){ #if Boolean and input states have two names, use them
+                                .self$states <<- states 
+                              } else { #if Boolean and input states do not have two names, use default
+                                .self$states <<- c("False", "True")
+                              }
+                            } else if (.self$type == "Ranked" || .self$type == "Labelled" || .self$type == "DiscreteReal"){
+                              .self$states <<- states
+                            } else {
+                              .self$states <<- NULL
+                            }
+                          } 
+                        }
+                        
+                        #assigning $parents - they're not Node objects, ids of other Nodes
+                        if(!is.null(parents)){
+                          .self$parents <<- parents
+                        }
+                        
+                        #assigning $distr_type - if not simulated, Manual by default; if simulated Expression by default
+                        if(.self$simulated){
+                          if(is.null(distr_type)){
+                            .self$distr_type <<- "Expression"
+                          } else {
+                            if(distr_type == "Partitioned" && length(.self$parents) > 0){
+                              .self$distr_type <<- "Partitioned"
+                            } else {
+                              .self$distr_type <<- "Expression"
+                            }
+                          }
+                        } else{
+                          if(is.null(distr_type)){
+                            .self$distr_type <<- "Manual"
+                          } else{
+                            if(distr_type == "Manual" || distr_type == "Expression"){
+                              .self$distr_type <<- distr_type
+                            } else if(distr_type == "Partitioned"){
+                              if(length(.self$parents > 0)){ #if Node has no parents, do not allow Partitioned
+                                .self$distr_type <<- distr_type
+                              } else {
+                                .self$distr_type <<- "Expression"
+                              }
+                            } else {
+                              .self$distr_type <<- "Manual" #if incorrect input, set it to default Manual
+                            }
+                          }
+                        }
+                        
+                        #assigning $partitions based on distr_type and number of parents
+
+                        
+                        #assigning $probabilities based on distr_type and number of parents
+                        if(.self$simulated){
+                          .self$probabilities <- NULL
+                          if(.self$distr_type == "Expression"){
+                            .self$partitions <- NULL
+                            if(is.null(expressions)){
+                              .self$expressions <<- "Normal(0,1000000)"
+                            } else {
+                              if(length(expressions) == 1){
+                                .self$expressions <<- expressions
+                              } else {
+                                .self$expressions <<- "Normal(0,1000000)"
+                              }
+                            }
+                          } else if(.self$distr_type == "Partitioned"){
+                            if(is.null(partitions)){
+                              .self$distr_type == "Expression" #if no partitions given, convert Node to Expression
+                            } else {
+                              .self$partitions <<- partitions ###will need to make sure these are all from parent ids###
+                              
+                            }
+                          }
+                        } else { #if not simulated
+                          
+                        }
+                        
+                        
+                        #assigning $expressions based on distr_type and number of parents
+                        
+                        #assigning $partitions based on distr_type and number of parents
+                        
+                        },
                       addParent = function(newParent){
+                        'Adds a new parent Node to the current Node by their ids'
                         if(!(newParent %in% parents)){
                           parents <<- append(parents,newParent)
+                          #need to adjust NPT now (probs,exprs,partts)
                         }
                         
                       })
@@ -276,10 +413,5 @@ from_cmpx <- function(modelPath){
 }
 
 
-for (ntw in networks){
-  cat("Nodes in ",ntw$id,":\n")
-  for (nd in ntw$nodes){
-    cat(nd$id,"\n")
-  }
-}
+
 
