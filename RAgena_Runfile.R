@@ -12,7 +12,7 @@ car_model <- from_cmpx(car_costs_path)
 adv_rel_model_path = "Models/AdvancedReliabilityModelling.cmpx"
 rel_model <- from_cmpx(adv_rel_model_path)
 
-
+help(sink)
 
 #test creating new Nodes and Network
 
@@ -36,6 +36,14 @@ Lactate <- Node$new(id="Lactate",simulated=TRUE)
 Shock$setProbabilities(list(0.5,0.2,0.3))
 Shock$probabilities
 TIC$setProbabilities(list(c(0.9,0.8,0.7,0.8,0.7,0.6,0.8,0.7,0.5),c(0.1,0.2,0.3,0.2,0.3,0.4,0.2,0.3,0.5)))
+TIC$setProbabilities(list(c(0.9,0.1),c(0.8,0.2),c(0.7,0.3),c(0.8,0.2),c(0.7,0.3),c(0.6,0.4),c(0.8,0.2),c(0.7,0.3),c(0.5,0.5)), by_rows=FALSE)
+TIC$probabilities
+
+rows_list <- list(c(0.9,0.8,0.7,0.8,0.7,0.6,0.8,0.7,0.5),c(0.1,0.2,0.3,0.2,0.3,0.4,0.2,0.3,0.5))
+columns_list <- list(c(0.9,0.1),c(0.8,0.2),c(0.7,0.3),c(0.8,0.2),c(0.7,0.3),c(0.6,0.4),c(0.8,0.2),c(0.7,0.3),c(0.5,0.5))
+length(rows_list)
+length(columns_list)
+
 TIC$probabilities
 #HeartRate$distr_type
 HeartRate$setExpressions(c("Normal(90,10)","Normal(110,15)","Normal(120,30)"),"Shock")

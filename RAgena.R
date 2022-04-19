@@ -33,7 +33,7 @@ Node <- setRefClass("Node",
                         }else{
                           cat("\nType:",.self$type)
                         }
-                        cat("\nPrior distribution type:",.self$distr_type)
+                        cat("\nNPT type:",.self$distr_type)
                         
                       },
                       initialize = function(id,name=NULL,description=NULL,type=NULL,simulated=FALSE,states=NULL){
@@ -266,28 +266,58 @@ Node <- setRefClass("Node",
                         
                         #####need to re-adjust probabilities / expressions etc. if the distr_type is changed
                       },
-                      setProbabilities = function(new_probs){
-                        if(!.self$simulated && .self$distr_type == "Manual" && (.self$type != "ContinuousInterval" || .self$type != "IntegerInterval")){
-                          if(length(new_probs) == length(.self$states)){
+                      setProbabilities = function(new_probs, by_rows=TRUE){
+                        if(by_rows){
+                          if(!.self$simulated && .self$distr_type == "Manual" && (.self$type != "ContinuousInterval" || .self$type != "IntegerInterval")){
+                            if(length(new_probs) == length(.self$states)){
+                              temp_length <- 1
+                              if(length(.self$parents)>0){
+                                for (prt in .self$parents){
+                                  temp_length <- temp_length * length(prt$states)
+                                }
+                              }
+                              
+                              subset_length_control <- 1
+                              for (subset in new_probs){
+                                if(length(subset) == temp_length){
+                                  subset_length_control <- subset_length_control * 1
+                                } else {
+                                  subset_length_control <- subset_length_control * 0
+                                }
+                              }
+                              
+                              ######need another control to check probability sums are 1
+                              if(subset_length_control == 1){
+                                probabilities <<- new_probs
+                              }
+                            }
+                          }
+                        } else {
+                          if(!.self$simulated && .self$distr_type == "Manual" && (.self$type != "ContinuousInterval" || .self$type != "IntegerInterval")){
                             temp_length <- 1
                             if(length(.self$parents)>0){
                               for (prt in .self$parents){
                                 temp_length <- temp_length * length(prt$states)
                               }
                             }
-
-                            subset_length_control <- 1
-                            for (subset in new_probs){
-                              if(length(subset) == temp_length){
-                                subset_length_control <- subset_length_control * 1
-                              } else {
-                                subset_length_control <- subset_length_control * 0
+                            
+                            if(length(new_probs)==temp_length){
+                              subset_length_control <- 1
+                              for (subset in new_probs){
+                                if(length(subset)==length(.self$states)){
+                                  subset_length_control <- subset_length_control * 1
+                                } else {
+                                  subset_length_control <- subset_length_control * 0
+                                }
                               }
                             }
                             
-                            ######need another control to check probability sums are 1
                             if(subset_length_control == 1){
-                              probabilities <<- new_probs
+                              for (i in 1:length(new_probs)){
+                                for (j in 1:length(new_probs[[i]])){
+                                  probabilities[[j]][[i]] <<- new_probs[[i]][[j]] 
+                                }
+                              }
                             }
                           }
                         }
