@@ -167,9 +167,9 @@ Node <- setRefClass("Node",
                             probabilities[[i]] <<- rep(1/length(.self$probabilities),temp_length)
                           }
                           
-                          cat("Node",newParent$id,"has been added to the parents list of",.self$id,".\nNPT values for",.self$id,"are reset to uniform.\n")
+                          cat("Node",newParent$id,"has been added to the parents list of",.self$id,"\nNPT values for",.self$id,"are reset to uniform\n")
                         } else {
-                          cat("Node",newParent$id,"has been added to the parents list of",.self$id,".\nNow you can use",newParent$id,"in the expression of",.self$id,".\n")
+                          cat("Node",newParent$id,"has been added to the parents list of",.self$id,"\nNow you can use",newParent$id,"in the expression of",.self$id,"\n")
                         }
 
 
@@ -211,7 +211,7 @@ Node <- setRefClass("Node",
                           for (i in 1:length(.self$probabilities)){
                             probabilities[[i]] <<- rep(1/length(.self$probabilities),temp_length)
                           }
-                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,".\nNPT values for",.self$id,"are reset to uniform.\n")
+                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\nNPT values for",.self$id,"are reset to uniform\n")
                         } else if (.self$distr_type == "Partitioned") {
                           if(oldParentID %in% .self$partitions){
                             partitions <<- partitions[partitions != oldParentID]
@@ -226,13 +226,13 @@ Node <- setRefClass("Node",
                               }
                             }
                             expressions <<- rep("Normal(0,1000000)",temp_length)
-                            cat("Node",oldParentID,"has been removed from the parents list of",.self$id,".\nPartitioned expressions for",.self$id,"are reset to Normal distribution.\n")
+                            cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\nPartitioned expressions for",.self$id,"are reset to Normal distribution\n")
                           } else {
                             cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\n")
                           }
                         } else {
                           expressions <<- "Normal(0,1000000)"
-                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,".\nExpression for",.self$id,"is reset to Normal distribution.\n")
+                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\nExpression for",.self$id,"is reset to Normal distribution\n")
                         }
 
                         
