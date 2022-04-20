@@ -26,15 +26,38 @@ Node <- setRefClass("Node",
                                   partitions = "character",
                                   variables = "list"),
                     methods = list(
-                      show = function(){
-                        cat("Bayesian Network Node: \"",.self$name,"\"\nID:",.self$id,"\nDescription:",.self$description)
-                        if(.self$simulated==TRUE){
-                          cat("\nType:",.self$type,"(simulated)")
-                        }else{
-                          cat("\nType:",.self$type)
+                      show = function(verbose=FALSE){
+                        if(!verbose){
+                          cat(paste0("Bayesian Network Node: \"",.self$name,"\"\nUnique identifier: ",.self$id))
+                          if(.self$simulated==TRUE){
+                            cat("\nNode type:",.self$type,"(simulated)")
+                          }else{
+                            cat("\nNode type:",.self$type)
+                          }
+                        } else{
+                          cat(paste0("Bayesian Network Node: \"",.self$name,"\"\nUnique identifier: ",.self$id))
+                          if(.self$simulated==TRUE){
+                            cat("\nNode type:",.self$type,"(simulated)")
+                          }else{
+                            cat("\nNode type:",.self$type)
+                          }
+                          if(length(.self$parents)==0){
+                            cat("\nThe node has no parents.")
+                          } else if(length(.self$parents)==1){
+                            cat("\nParent node:",.self$parents[[1]]$name)
+                          } else if(length(.self$parents)==2){
+                            cat(paste0("\nParent nodes: ",.self$parents[[1]]$name,"; ",.self$parents[[2]]$name))
+                          } else if(length(.self$parents)>2){
+                            cat(paste0("\nParent nodes: ",.self$parents[[1]]$name,"; "))
+                            for (pr in 2:(length(.self$parents)-1)){
+                              cat(paste0(.self$parents[[pr]]$name,"; "))
+                            }
+                            cat(.self$parents[[length(.self$parents)]]$name)
+                          }
+                          cat("\nNPT type:",.self$distr_type)
+                          if(.self$distr_type=="Manual"){
+                          }
                         }
-                        cat("\nNPT type:",.self$distr_type)
-                        
                       },
                       initialize = function(id,name=NULL,description=NULL,type=NULL,simulated=FALSE,states=NULL){
                         
@@ -90,7 +113,6 @@ Node <- setRefClass("Node",
                           }
                         }
 
-                        
                         #setting $states - null if simulated, depends on type if not simulated
                         if(.self$simulated){
                           .self$states <<- character(0)
@@ -136,13 +158,23 @@ Node <- setRefClass("Node",
                             }
                           }
                         }
-                        
-                        },
+                      },
+                      getParents = function(){
+                        parList <- c()
+                        if(length(.self$parents)>0){
+                          for (i in 1:length(.self$parents)) {
+                            parList[i] <- .self$parents[[i]]$id
+                          }
+                        }
+                        else{
+                          parList <- NULL
+                        }
+                        return(parList)
+                      },
                       addParent = function(newParent){
-                        'Adds a Node object as a new parent node to the current Node object.
+                        'Adds a Node object as a new parent node to the current Node object and resets/resizes the NPT values and expressions of the Node as needed.
                         Parents list of a Node object is a list of other Node objects.
-                        Variable name is used as a reference to the Node to be added as a parent here.
-                        A good practice is to use Node ids as their variable names.'
+                        The input parameter of the function is a Node object variable. A good practice is to use Node ids as their variable names.'
                         temp_par_list <- c()
                         for (pr in .self$parents){
                           temp_par_list <- append(temp_par_list,pr$id)
@@ -150,7 +182,6 @@ Node <- setRefClass("Node",
                         if (!(newParent$id %in% temp_par_list)){
                           parents <<- append(parents,newParent)
                         }
-                        
                         
                         if(.self$distr_type == "Manual"){
                           #update probabilities when parent added (reset to uniform with correct number of values)
@@ -171,30 +202,27 @@ Node <- setRefClass("Node",
                         } else {
                           cat("Node",newParent$id,"has been added to the parents list of",.self$id,"\nNow you can use",newParent$id,"in the expression of",.self$id,"\n")
                         }
-
-
-                        ######need to do the update for expressions
-
-
                       },
                       addParent_byID = function(newParentID, varList){
-                        'A method to add parent Nodes by their ids mainly for cmpx parser capabilities.
-                        To add parents to Node objects, the use of $addParent(Node) is recommended.'
+                        'This is a method to add parent Nodes by their ids for cmpx parser capabilities.
+                        To add parents to Node objects, please use $addParent(Node) method.'
                         
                         for (i in 1:length(varList)){
                           if(newParentID == varList[[i]]$id){
                             .self$addParent(varList[[i]])
                           }
                         }
-                        
-                        ######need to resize / reset size of probs/exprs table when parent added
+                        #This does not do any smart adjustments to NPTs/expressions - only used in cmpx parser
                       },
-                      removeParent = function(oldParentID){
-                        'A method to remove one of the existing parents of a Node object.
-                        Current parent Nodes are referred to by their ids.'
-                        for (i in 1:length(.self$parents)){
-                          if(oldParentID == .self$parents[[i]]$id){
-                            parents <<- .self$parents[-i]
+                      removeParent = function(oldParent){
+                        'Removes a Node object from parents of the current Node object and resets/resizes the NPT values and expressions of the Node as needed.
+                        The input parameter of the function is a Node object variable. A good practice is to use Node ids as their variable names.'
+                        if(oldParent$id %in% .self$getParents()){
+                          for (i in 1:length(.self$parents)){
+                            if(oldParent$id == .self$parents[[i]]$id){
+                              parents <<- .self$parents[-i]
+                              break
+                            }
                           }
                         }
                         
@@ -211,7 +239,7 @@ Node <- setRefClass("Node",
                           for (i in 1:length(.self$probabilities)){
                             probabilities[[i]] <<- rep(1/length(.self$probabilities),temp_length)
                           }
-                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\nNPT values for",.self$id,"are reset to uniform\n")
+                          cat("Node",oldParent$name,"has been removed from the parents list of",.self$name,"\nNPT values for",.self$name,"are reset to uniform\n")
                         } else if (.self$distr_type == "Partitioned") {
                           if(oldParentID %in% .self$partitions){
                             partitions <<- partitions[partitions != oldParentID]
@@ -226,17 +254,14 @@ Node <- setRefClass("Node",
                               }
                             }
                             expressions <<- rep("Normal(0,1000000)",temp_length)
-                            cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\nPartitioned expressions for",.self$id,"are reset to Normal distribution\n")
+                            cat("Node",oldParent$name,"has been removed from the parents list of",.self$name,"\nPartitioned expressions for",.self$name,"are reset to Normal distribution\n")
                           } else {
-                            cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\n")
+                            cat("Node",oldParent$name,"has been removed from the parents list of",.self$name,"\n")
                           }
                         } else {
                           expressions <<- "Normal(0,1000000)"
-                          cat("Node",oldParentID,"has been removed from the parents list of",.self$id,"\nExpression for",.self$id,"is reset to Normal distribution\n")
+                          cat("Node",oldParent$name,"has been removed from the parents list of",.self$name,"\nExpression for",.self$name,"is reset to Normal distribution\n")
                         }
-
-                        
-                        ######need to resize / reset size of probs/exprs table when parent removed
                       },
                       setDistributionType = function(new_distr_type){
                         'A method to set the distribution type of a Node for the table configurations.'
@@ -263,8 +288,6 @@ Node <- setRefClass("Node",
                               cat("Incorrect input. Distribution type is set to Manual instead.\n")
                             }
                         }
-                        
-                        #####need to re-adjust probabilities / expressions etc. if the distr_type is changed
                       },
                       setProbabilities = function(new_probs, by_rows=TRUE){
                         if(by_rows){
@@ -332,7 +355,6 @@ Node <- setRefClass("Node",
                       })
                     )
 
-
 #Network object as an R reference class
 Network <- setRefClass("Network",
                        fields = list(id = "character",
@@ -341,7 +363,12 @@ Network <- setRefClass("Network",
                                      nodes = "list"),
                        methods = list(
                          show = function(){
-                           cat("Bayesian Network: \"",.self$name,"\"\nID:",.self$id,"\nDescription:",.self$description)
+                           cat(paste0("Bayesian Network: \"",.self$name,"\"\nID: ",.self$id))
+                           cat(paste0("\nNodes in the network: ",.self$nodes[[1]]$name,"; "))
+                           for (nd in 2:(length(.self$nodes)-1)){
+                             cat(paste0(.self$nodes[[nd]]$name,"; "))
+                           }
+                           cat(.self$nodes[[length(.self$nodes)]]$name)
                          },
                          initialize = function(id,name=NULL,description=NULL,nodes=NULL){
                            
@@ -366,12 +393,46 @@ Network <- setRefClass("Network",
                              .self$nodes <<- nodes
                            }
                          },
+                         getNodes = function(){
+                           nodeList <- c()
+                           if(length(.self$nodes)>0){
+                             for (i in 1:length(.self$nodes)) {
+                               nodeList[i] <- .self$nodes[[i]]$id
+                             }
+                           }
+                           else{
+                             nodeList <- NULL
+                           }
+                           return(nodeList)
+                         },
+                         
                          addNode = function(newNode){
-                           'add new Node to Network'
+                           'A method to add new Node objects to a Network.
+                           Note that adding a new Node to the network does not automatically add its parents to the network.
+                           You need to add all the parents separately too.'
+                           
+                           if(newNode$id %in% .self$getNodes()){
+                             cat("There is already a node in the network with this ID")
+                           } else {
+                             nodes <<- append(nodes,newNode)
+                             cat(newNode$name,"is successfully added to the network")
+                           }
+                           
                          },
                          removeNode = function(oldNode){
                            'remove Node from Network'
-                           ######need to make sure this is in sync with Node$parents, when a Node is removed from Network what happens to its parents/children?
+                           if(oldNode$id %in% .self$getNodes()){
+                             for (i in 1:length(.self$nodes)){
+                               if(oldNode$id == .self$nodes[[i]]$id){
+                                 nodes <<- nodes[-i]
+                                 break
+                               }
+                             }
+
+                             cat(oldNode$name,"is successfully removed from the network. If",oldNode$name,"had any child nodes in the network, make sure to adjust their parents accordingly")
+                           } else {
+                             cat("This node is not in the network")
+                           }
                          })
                        )
 
@@ -385,14 +446,39 @@ Dataset <- setRefClass("Dataset",
                                 results = "list")) #these Dataset objects will be compatible with a reasonable data input file / csv to create them
 
 
-
 #Model object as an R reference class
 #One CMPX file corresponds to one R Model instance
 Model <- setRefClass("Model",
-                     fields = list(networks = "list",
+                     fields = list(id = "character",
+                                   networks = "list",
                                    dataSets = "list",
                                    networkLinks = "list"
-                                   )) #still needs the show() function
+                                   ),
+                     methods = list(
+                       show = function(){
+                         cat(paste0("BN Model: \"",.self$name,"\""))
+                         cat("\nNetworks in this model are:")
+                         for (nt in .self$networks){
+                           cat("\n-",nt)
+                         }
+                       },
+                       initialize = function(id=NULL, networks){
+                         if(is.null(id)){
+                           .self$id <<- paste(networks[[1]]$id,"Model")
+                         } else{
+                           .self$id <<- id
+                         }
+                         .self$networks <<- networks
+                       },
+                       addNetworkLink = function(outNetwork,outNode,inNetwork,inNode,linkType){
+                         #check if both nodes are the same type and either of them is simulated
+                         #check if both nodes are the same type and neither is simulated and both have the same number of states
+                         #check sourcenode is not numeric interval or discrete real and target node is simulated
+                         
+                         #type in c("Marginals", "Mean", "Median", "Variance", "StandardDeviation", "LowerPercentile", "UpperPercentile", "State")
+                         #if type state, passState string must appear
+                       }
+                     )) 
 
 #function to read input CMPX file to create Model and its Networks and their Nodes
 from_cmpx <- function(modelPath){
@@ -480,6 +566,111 @@ from_cmpx <- function(modelPath){
   return(outputModel)
 }
 
+to_cmpx <- function(inputModel){
+  
+  ###### TWO THINGS TO REMEMBER FOR DEVELOPMENT:
+  ######### Some of these lists below will have many items in them like nodes, summarystats etc.
+  ######### Some of these lists might not be needed as part of the barebones cmpx files to be sent to the server without any prior calculations
+  
+  #MAIN
+  json_list <- list(model = model_list)
+  
+  #1
+  model_list <- list(settings = settings_list,
+                     networks = networks_list,
+                     links = networklinks_list,
+                     dataSets = datasets_list)
+  #1.1
+  settings_list <- list(parameterLearningLogging = FALSE,
+                        discreteTails = FALSE,
+                        sampleSizeRanked = 5,
+                        convergence = 0.01,
+                        simulationLogging = FALSE,
+                        iterations = 50,
+                        tolerance = 1)
+  #1.2
+  networks_list <- list(id = "placeholder",
+                    name = "placeholder",
+                    description = "placeholder",
+                    nodes = nodes_list,
+                    links = links_list)
+  #1.2.1
+  nodes_list <- list(id = "placeholder",
+                     name = "placeholder",
+                     description = "placeholder",
+                     configuration = config_list)
+  #1.2.1.1
+  config_list <- list(type = "placeholder",
+                      output = FALSE,
+                      input = FALSE,
+                      simulated = FALSE,
+                      states = "placeholder",
+                      variables = vars_list,
+                      table = table_list)
+  #1.2.1.1.1
+  vars_list <- list(name = "placeholder",
+                    value = "placeholder")
+  #1.2.1.1.2
+  table_list <- list(type = "placeholder",
+                     probabilities = "placeholder",
+                     expressions = "placeholder",
+                     partitions = "placeholder")
+  #1.2.2
+  links_list <- list(parent = "placeholder",
+                     child = "placeholder")
+  #1.3
+  networklinks_list <- list(sourceNetwork = "placeholder",
+                            sourceNode = "placeholder",
+                            targetNetwork = "placeholder",
+                            targetNode = "placeholder",
+                            type = "placeholder",
+                            passState = "placeholder")
+  #1.4
+  datasets_list <- list(id = "placeholder",
+                        observations = obs_list,
+                        results = res_list)
+  
+  #1.4.1
+  obs_list <- list(node = "placeholder",
+                   network = "placeholder",
+                   entries = entries_list)
+  #1.4.1.1
+  entries_list <- list(weight = "placeholder",
+                       value = "placeholder",
+                       constantName = "placeholder")
+  #1.4.2
+  res_list <- list(node = "placeholder",
+                   network = "placeholder",
+                   resultValues = resval_list,
+                   summaryStatistics = sumstat_list)
+  #1.4.2.1
+  resval_list <- list(label = "placeholder",
+                      value = "placeholder")
+  #1.4.2.2
+  sumstat_list <- list(confidenceInterval = "placeholder",
+                       entropy = "placeholder",
+                       percentile = "placeholder",
+                       median = "placeholder",
+                       variance = "placeholder",
+                       mean = "placeholder",
+                       standardDeviation = "placeholder",
+                       lowerPercentile = "placeholder",
+                       upperPercentile = "placeholder")
+  
+  
+  json_object <- rjson::toJSON(json_list)
+  write(json_object,"r-bayesian-model.json")
+  
+  # default_settings_list <- list(parameterLearningLogging = FALSE,
+  #                               discreteTails = FALSE,
+  #                               sampleSizeRanked = 5,
+  #                               convergence = 0.01,
+  #                               simulationLogging = FALSE,
+  #                               iterations = 50,
+  #                               tolerance = 1)
+  
+  ######Network$links will be shaped up here for cmpx using node-parent information
+}
 
 
 
