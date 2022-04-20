@@ -35,9 +35,9 @@ if(length(nodd$parents==0)){
 source("RAgena.R")
 TIC <- Node$new(id="TIC")
 Shock <- Node$new(id="Shock",type="Labelled",states=c("None","Compensated","Uncompensated"))
-Injury <- Node$new(id="Injury",type="Ranked")
+TissueInjury <- Node$new(id="TissueInjury",type="Ranked")
 TIC$addParent(Shock)
-TIC$addParent(Injury)
+TIC$addParent(TissueInjury)
 #TIC$setDistributionType("Manual")
 #Shock$probabilities
 HeartRate <- Node$new(id="HeartRate",simulated=TRUE)
@@ -48,7 +48,7 @@ Lactate <- Node$new(id="Lactate",simulated=TRUE)
 #TIC$addParent(Shock)
 #TIC$probabilities
 #Shock$probabilities
-#Injury$probabilities
+#TissueInjury$probabilities
 #HeartRate$distr_type
 Shock$setProbabilities(list(0.5,0.2,0.3))
 #Shock$probabilities
@@ -65,18 +65,18 @@ Lactate$setExpressions("TNormal(4,1,-10,10)")
 Energy <- Node$new(id="Energy",type="Ranked")
 Energy$setProbabilities(list(0.5,0.3,0.2))
 
-#Injury$probabilities
-Injury$addParent(Energy)
-#Injury$probabilities
+#TissueInjury$probabilities
+TissueInjury$addParent(Energy)
+#TissueInjury$probabilities
 
 Mechanism <- Node$new(id="Mechanism",type="Labelled")
 Mechanism$states <- c("Penetrating", "Blunt")
-Injury$addParent(Mechanism)
-#Injury$probabilities
+TissueInjury$addParent(Mechanism)
+#TissueInjury$probabilities
 
-# Injury$removeParent("Mechanism")
-# Injury$parents
-# Injury$probabilities
+# TissueInjury$removeParent("Mechanism")
+# TissueInjury$parents
+# TissueInjury$probabilities
 
 # TempParent <- Node$new(id="TempParent")
 # HeartRate$expressions
@@ -89,7 +89,7 @@ Injury$addParent(Mechanism)
 # HeartRate$expressions
 
 
-Network_TIC <- Network$new(id="TIC_Network",nodes=c(TIC,Shock,Injury,HeartRate))
+Network_TIC <- Network$new(id="TIC_Network",nodes=c(TIC,Shock,TissueInjury,HeartRate))
 # Network_TIC$id
 # Network_TIC$nodes[[1]]$parents
 # Network_TIC$nodes[[2]]$parents
@@ -101,8 +101,8 @@ Network_TIC$getNodes()
 Network_TIC$addNode(Energy)
 Network_TIC$addNode(Mechanism)
 Network_TIC$addNode(TIC)
-Network_TIC$removeNode(Injury)
-Network_TIC$addNode(Injury)
+Network_TIC$removeNode(TissueInjury)
+Network_TIC$addNode(TissueInjury)
 
 
 
