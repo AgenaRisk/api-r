@@ -483,6 +483,11 @@ Model <- setRefClass("Model",
                          
                          #type in c("Marginals", "Mean", "Median", "Variance", "StandardDeviation", "LowerPercentile", "UpperPercentile", "State")
                          #if type state, passState string must appear
+                       },
+                       to_cmpx = function(){
+                         json_object <- generate_cmpx(.self)
+                         fileName <- paste0(.self$id,".json")
+                         write(json_object,fileName)
                        }
                      )) 
 
@@ -546,7 +551,7 @@ from_cmpx <- function(modelPath){
     }
     
     networks[[i]]$nodes <- nodes[[i]]
-    links[[i]] <- cmpx_networks[[1]]$links
+    links[[i]] <- cmpx_networks[[i]]$links
   }
   
   for (i in 1:length(networks)) {
@@ -577,7 +582,7 @@ from_cmpx <- function(modelPath){
 
 
 
-to_cmpx <- function(inputModel){
+generate_cmpx <- function(inputModel){
 
   #creating empty lists and sublists with correct length to be filled in later
   networks_list <- vector(mode = "list", length = length(inputModel$networks))
@@ -666,8 +671,7 @@ to_cmpx <- function(inputModel){
       nodes_list[[i]][[j]] <- list(id = inputModel$networks[[i]]$nodes[[j]]$id,
                                    name = inputModel$networks[[i]]$nodes[[j]]$name,
                                    description = inputModel$networks[[i]]$nodes[[j]]$description,
-                                   configuration = config_list[[i]][[j]]
-                                   )
+                                   configuration = config_list[[i]][[j]])
     }
   }
   
@@ -685,30 +689,9 @@ to_cmpx <- function(inputModel){
         }
       }
     }
-    
   }
   
   
-  
-  
-  for (i in 1:length(inputModel$networks)){
-    temp_parents_list <- vector(mode="list", length=length(inputModel$networks))
-    temp_children_list <- vector(mode="list", length=length(inputModel$networks))
-    for (t in 1:length(inputModel$networks)){
-      temp_parents_list[[t]] <- list()
-      temp_children_list[[t]] <- list()
-    }
-  
-    for (j in 1:length(inputModel$networks[[i]]$nodes)){
-      if(length(inputModel$networks[[i]]$nodes[[j]]$parents) != 0){
-        for (k in 1:length(inputModel$networks[[i]]$nodes[[j]]$parents)){
-          temp_parents_list[[i]] <- append(temp_parents_list[[i]], inputModel$networks[[i]]$nodes[[j]]$parents[[k]]$id)
-          temp_children_list[[i]] <- append(temp_children_list[[i]], inputModel$networks[[i]]$nodes[[j]]$id)
-        }
-      }
-    }
-  }
-
   for (i in 1:length(links_list)) {
     for (j in 1:length(links_list[[i]])){
       links_list[[i]][[j]] <- list(parent = temp_parents_list[[i]][[j]],
@@ -734,6 +717,11 @@ to_cmpx <- function(inputModel){
                         iterations = 50,
                         tolerance = 1)
 
+  if(length(inputModel$networkLinks) == 0){
+    networklinks_list <- list()
+  } else {
+    networklinks_list <- inputModel$networkLinks
+  }
   
   # networklinks_list <- list(sourceNetwork = "placeholder",
   #                           sourceNode = "placeholder",
@@ -743,124 +731,13 @@ to_cmpx <- function(inputModel){
   #                           passState = "placeholder")
   
   model_list <- list(settings = settings_list,
-                     networks = networks_list)
-  
-  json_list <- list(model = model_list)
-  json_object <- rjson::toJSON(json_list)
-  write(json_object,"r-bayesian-model2.json")
-  
-
-  
-  
-  
-  
-  ###### TWO THINGS TO REMEMBER FOR DEVELOPMENT:
-  ######### Some of these lists below will have many items in them like nodes, summarystats etc.
-  ######### Some of these lists might not be needed as part of the barebones cmpx files to be sent to the server without any prior calculations
-
-  #1.2.1.1.1
-  vars_list <- list(name = "placeholder",
-                    value = "placeholder")
-  #1.2.1.1.2
-  table_list <- list(type = "placeholder",
-                     probabilities = "placeholder",
-                     expressions = "placeholder",
-                     partitions = "placeholder")
-
-  #1.2.1.1
-  config_list <- list(type = "placeholder",
-                      output = FALSE,
-                      input = FALSE,
-                      simulated = FALSE,
-                      states = "placeholder",
-                      variables = vars_list,
-                      table = table_list) #output and input aren't shown unless node is specified as either
-  #1.4.1.1
-  entries_list <- list(weight = "placeholder",
-                       value = "placeholder",
-                       constantName = "placeholder")
-  #1.4.2.1
-  resval_list <- list(label = "placeholder",
-                      value = "placeholder")
-  #1.4.2.2
-  sumstat_list <- list(confidenceInterval = "placeholder",
-                       entropy = "placeholder",
-                       percentile = "placeholder",
-                       median = "placeholder",
-                       variance = "placeholder",
-                       mean = "placeholder",
-                       standardDeviation = "placeholder",
-                       lowerPercentile = "placeholder",
-                       upperPercentile = "placeholder")
-
-  #1.2.1
-  nodes_list <- list(id = "placeholder",
-                     name = "placeholder",
-                     description = "placeholder",
-                     configuration = config_list)
-  #1.2.2
-  links_list <- list(parent = "placeholder",
-                     child = "placeholder")
-  #1.4.1
-  obs_list <- list(node = "placeholder",
-                   network = "placeholder",
-                   entries = entries_list)
-  #1.4.2
-  res_list <- list(node = "placeholder",
-                   network = "placeholder",
-                   resultValues = resval_list,
-                   summaryStatistics = sumstat_list)
-
-  #1.1
-  settings_list <- list(parameterLearningLogging = FALSE,
-                        discreteTails = FALSE,
-                        sampleSizeRanked = 5,
-                        convergence = 0.001,
-                        simulationLogging = FALSE,
-                        iterations = 50,
-                        tolerance = 1)
-  #1.2
-  networks_list <- list(id = "placeholder",
-                        name = "placeholder",
-                        nodes = nodes_list,
-                        links = links_list)
-  #1.3
-  networklinks_list <- list(sourceNetwork = "placeholder",
-                            sourceNode = "placeholder",
-                            targetNetwork = "placeholder",
-                            targetNode = "placeholder",
-                            type = "placeholder",
-                            passState = "placeholder")
-  #1.4
-  datasets_list <- list(id = "placeholder",
-                        observations = obs_list,
-                        results = res_list)
-
-  #1
-  model_list <- list(settings = settings_list,
                      networks = networks_list,
-                     links = networklinks_list,
-                     dataSets = datasets_list)
-  # settings is default settings unless specified otherwise
-  # links should be empty [] if there's no network links
+                     links = networklinks_list)
   
-
-  #MAIN
   json_list <- list(model = model_list)
-
-
   json_object <- rjson::toJSON(json_list)
-  write(json_object,"r-bayesian-model.json")
+  #write(json_object,"r-bayesian-model2.json")
 
-  # default_settings_list <- list(parameterLearningLogging = FALSE,
-  #                               discreteTails = FALSE,
-  #                               sampleSizeRanked = 5,
-  #                               convergence = 0.01,
-  #                               simulationLogging = FALSE,
-  #                               iterations = 50,
-  #                               tolerance = 1)
-
-  ######Network$links will be shaped up here for cmpx using node-parent information
 }
 
 
