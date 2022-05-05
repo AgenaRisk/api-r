@@ -114,6 +114,7 @@ Network_TIC$addNode(TissueInjury)
 
 TIC_Model <- Model$new(networks = list(Network_TIC))
 TIC_Model$to_cmpx()
+TIC_Model$to_json()
 
 
 
