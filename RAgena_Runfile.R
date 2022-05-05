@@ -9,6 +9,11 @@ modelPath <- "Models/CarCosts.cmpx"
 car_costs_path = "Models/CarCosts.cmpx"
 car_model <- from_cmpx(car_costs_path)
 
+#dev
+inputModel <- car_model
+inputModel <- rel_model
+
+  
 adv_rel_model_path = "Models/AdvancedReliabilityModelling.cmpx"
 rel_model <- from_cmpx(adv_rel_model_path)
 
