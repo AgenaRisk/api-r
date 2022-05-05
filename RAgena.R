@@ -456,13 +456,19 @@ Model <- setRefClass("Model",
                                    ),
                      methods = list(
                        show = function(){
-                         cat(paste0("BN Model: \"",.self$name,"\""))
+                         cat(paste0("BN Model: \"",.self$id,"\""))
                          cat("\nNetworks in this model are:")
                          for (nt in .self$networks){
-                           cat("\n-",nt)
+                           cat("\n-",nt$id)
                          }
                        },
-                       initialize = function(id=NULL, networks){
+                       initialize = function(id=NULL, networks, dataSets=NULL, networkLinks=NULL){
+                         if(!is.null(networkLinks)){
+                           .self$networkLinks <<- networkLinks
+                         }
+                         if(!is.null(dataSets)){
+                           .self$dataSets <<- dataSets
+                         }
                          if(is.null(id)){
                            .self$id <<- paste(networks[[1]]$id,"Model")
                          } else{
@@ -573,6 +579,181 @@ from_cmpx <- function(modelPath){
 
 to_cmpx <- function(inputModel){
 
+  #creating empty lists and sublists with correct length to be filled in later
+  networks_list <- vector(mode = "list", length = length(inputModel$networks))
+  
+  nodes_list <- vector(mode = "list", length = length(inputModel$networks))
+  for (i in 1:length(nodes_list)) {
+    nodes_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
+  }
+  
+  config_list <- vector(mode = "list", length = length(inputModel$networks))
+  for (i in 1:length(config_list)) {
+    config_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
+  }
+  
+  table_list <- vector(mode = "list", length = length(inputModel$networks))
+  for (i in 1:length(table_list)) {
+    table_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
+  }
+  
+  links_list <- vector(mode = "list", length = length(inputModel$networks))
+  for (i in 1:length(nodes_list)) {
+    links_amount <- 0
+    for (nd in inputModel$networks[[i]]$nodes){
+      links_amount <- links_amount + length(nd$parents)
+    }
+    links_list[[i]] <- vector(mode = "list", length = links_amount)
+  }
+  
+  
+  #table_list generation
+  for (i in 1:length(table_list)){
+    for (j in 1:length(table_list[[i]])){
+      table_list[[i]][[j]] <- list(type = inputModel$networks[[i]]$nodes[[j]]$distr_type)
+      if(inputModel$networks[[i]]$nodes[[j]]$distr_type == "Manual"){
+        #table_list[[i]][[j]]$probabilities <- inputModel$networks[[i]]$nodes[[j]]$probabilities
+        temp_probs_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$probabilities))
+        for (k in 1:length(temp_probs_list)){
+          temp_probs_sublist <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$probabilities[[k]]))
+          for (m in 1:length(temp_probs_sublist)){
+            temp_probs_list[[k]][m] <- inputModel$networks[[i]]$nodes[[j]]$probabilities[[k]][m]
+          }
+        }
+        table_list[[i]][[j]]$probabilities <- temp_probs_list
+      } else if (inputModel$networks[[i]]$nodes[[j]]$distr_type == "Expression"){
+        temp_exp_list <- vector(mode = "list", length = 1)
+        temp_exp_list[1] <- inputModel$networks[[i]]$nodes[[j]]$expressions
+        table_list[[i]][[j]]$expressions <- temp_exp_list
+      } else if (inputModel$networks[[i]]$nodes[[j]]$distr_type == "Partitioned"){
+        temp_part_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$partitions))
+        temp_exp_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$expressions))
+        for (k in 1:length(temp_part_list)){
+          temp_part_list[k] <- inputModel$networks[[i]]$nodes[[j]]$partitions[[k]]
+        }
+        for (k in 1:length(temp_exp_list)){
+          temp_exp_list[k] <- inputModel$networks[[i]]$nodes[[j]]$expressions[[k]]
+        }
+        table_list[[i]][[j]]$partitions <- temp_part_list
+        table_list[[i]][[j]]$expressions <- temp_exp_list
+      }
+    }
+  }
+  
+
+  for (i in 1:length(config_list)){
+    for (j in 1:length(config_list[[i]])){
+      config_list[[i]][[j]] <- list(type = inputModel$networks[[i]]$nodes[[j]]$type,
+                                    simulated = inputModel$networks[[i]]$nodes[[j]]$simulated,
+                                    input = FALSE,
+                                    output = FALSE,
+                                    table = table_list[[i]][[j]]
+                                    )
+      if(!inputModel$networks[[i]]$nodes[[j]]$simulated && inputModel$networks[[i]]$nodes[[j]]$distr_type == "Manual"){
+        temp_states_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$states))
+        for (k in 1:length(inputModel$networks[[i]]$nodes[[j]]$states)){
+          temp_states_list[k] <- inputModel$networks[[i]]$nodes[[j]]$states[k]
+        }
+        config_list[[i]][[j]]$states <- temp_states_list
+      }
+    }
+  } #still needs variables <- vars_list
+  
+
+  
+  for (i in 1:length(nodes_list)) {
+    for (j in 1:length(nodes_list[[i]])){
+      nodes_list[[i]][[j]] <- list(id = inputModel$networks[[i]]$nodes[[j]]$id,
+                                   name = inputModel$networks[[i]]$nodes[[j]]$name,
+                                   description = inputModel$networks[[i]]$nodes[[j]]$description,
+                                   configuration = config_list[[i]][[j]]
+                                   )
+    }
+  }
+  
+  temp_parents_list <- list()
+  temp_children_list <- list()
+  
+  for (i in 1:length(inputModel$networks)){
+    temp_parents_list[[i]] <- list()
+    temp_children_list[[i]] <- list()
+    for (j in 1:length(inputModel$networks[[i]]$nodes)){
+      if(length(inputModel$networks[[i]]$nodes[[j]]$parents) != 0){
+        for (k in 1:length(inputModel$networks[[i]]$nodes[[j]]$parents)){
+          temp_parents_list[[i]] <- append(temp_parents_list[[i]], inputModel$networks[[i]]$nodes[[j]]$parents[[k]]$id)
+          temp_children_list[[i]] <- append(temp_children_list[[i]], inputModel$networks[[i]]$nodes[[j]]$id)
+        }
+      }
+    }
+    
+  }
+  
+  
+  
+  
+  for (i in 1:length(inputModel$networks)){
+    temp_parents_list <- vector(mode="list", length=length(inputModel$networks))
+    temp_children_list <- vector(mode="list", length=length(inputModel$networks))
+    for (t in 1:length(inputModel$networks)){
+      temp_parents_list[[t]] <- list()
+      temp_children_list[[t]] <- list()
+    }
+  
+    for (j in 1:length(inputModel$networks[[i]]$nodes)){
+      if(length(inputModel$networks[[i]]$nodes[[j]]$parents) != 0){
+        for (k in 1:length(inputModel$networks[[i]]$nodes[[j]]$parents)){
+          temp_parents_list[[i]] <- append(temp_parents_list[[i]], inputModel$networks[[i]]$nodes[[j]]$parents[[k]]$id)
+          temp_children_list[[i]] <- append(temp_children_list[[i]], inputModel$networks[[i]]$nodes[[j]]$id)
+        }
+      }
+    }
+  }
+
+  for (i in 1:length(links_list)) {
+    for (j in 1:length(links_list[[i]])){
+      links_list[[i]][[j]] <- list(parent = temp_parents_list[[i]][[j]],
+                                   child = temp_children_list[[i]][[j]])
+    }
+  }
+  
+      
+
+  for (i in 1:length(networks_list)) {
+    networks_list[[i]] <- list(id = inputModel$networks[[i]]$id,
+                               name = inputModel$networks[[i]]$name,
+                               description = inputModel$networks[[i]]$description,
+                               nodes = nodes_list[[i]],
+                               links = links_list[[i]])
+  }
+  
+  settings_list <- list(parameterLearningLogging = FALSE,
+                        discreteTails = FALSE,
+                        sampleSizeRanked = 5,
+                        convergence = 0.001,
+                        simulationLogging = FALSE,
+                        iterations = 50,
+                        tolerance = 1)
+
+  
+  # networklinks_list <- list(sourceNetwork = "placeholder",
+  #                           sourceNode = "placeholder",
+  #                           targetNetwork = "placeholder",
+  #                           targetNode = "placeholder",
+  #                           type = "placeholder",
+  #                           passState = "placeholder")
+  
+  model_list <- list(settings = settings_list,
+                     networks = networks_list)
+  
+  json_list <- list(model = model_list)
+  json_object <- rjson::toJSON(json_list)
+  write(json_object,"r-bayesian-model2.json")
+  
+
+  
+  
+  
+  
   ###### TWO THINGS TO REMEMBER FOR DEVELOPMENT:
   ######### Some of these lists below will have many items in them like nodes, summarystats etc.
   ######### Some of these lists might not be needed as part of the barebones cmpx files to be sent to the server without any prior calculations
