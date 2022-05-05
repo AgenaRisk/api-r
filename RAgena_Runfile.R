@@ -1,43 +1,45 @@
 source("RAgena.R")
 
 ###dev testing
-modelPath <- "Models/AdvancedReliabilityModelling.cmpx"
-modelPath <- "Models/CarCosts.cmpx"
+# modelPath <- "Models/AdvancedReliabilityModelling.cmpx"
+# modelPath <- "Models/CarCosts.cmpx"
 ###
 
 
 car_costs_path = "Models/CarCosts.cmpx"
 car_model <- from_cmpx(car_costs_path)
 
+car_model$to_cmpx()
+
 #dev
-inputModel <- car_model
-inputModel <- rel_model
+# inputModel <- car_model
+# inputModel <- rel_model
+
 
   
 adv_rel_model_path = "Models/AdvancedReliabilityModelling.cmpx"
 rel_model <- from_cmpx(adv_rel_model_path)
 
 
-nodd <- car_model$networks[[1]]$nodes[[1]]
-
-if(length(nodd$parents==0)){
-  cat("\nThe node has no parents.")
-} else if(length(.self$parents==1)){
-  cat("\nParent node:",.self$parents[[1]]$name)
-} else if(length(.self$parents==2)){
-  cat(paste0("\nParent nodes: ",.self$parents[[1]]$name,"; ",.self$parents[[2]]$name))
-} else if(length(.self$parents)>2){
-  cat(paste0("\nParent nodes: ",.self$parents[[1]]$name,"; "))
-  for (pr in 2:(length(.self$parents)-1)){
-    cat(paste0(.self$parents[[pr]]$name,"; "))
-  }
-  cat(.self$parents[[length(.self$parents)]]$name)
-}
-
+# nodd <- car_model$networks[[1]]$nodes[[1]]
+# 
+# if(length(nodd$parents==0)){
+#   cat("\nThe node has no parents.")
+# } else if(length(.self$parents==1)){
+#   cat("\nParent node:",.self$parents[[1]]$name)
+# } else if(length(.self$parents==2)){
+#   cat(paste0("\nParent nodes: ",.self$parents[[1]]$name,"; ",.self$parents[[2]]$name))
+# } else if(length(.self$parents)>2){
+#   cat(paste0("\nParent nodes: ",.self$parents[[1]]$name,"; "))
+#   for (pr in 2:(length(.self$parents)-1)){
+#     cat(paste0(.self$parents[[pr]]$name,"; "))
+#   }
+#   cat(.self$parents[[length(.self$parents)]]$name)
+# }
+# 
 
 
 #test creating new Nodes and Network
-source("RAgena.R")
 TIC <- Node$new(id="TIC")
 Shock <- Node$new(id="Shock",type="Labelled",states=c("None","Compensated","Uncompensated"))
 TissueInjury <- Node$new(id="TissueInjury",type="Ranked")
@@ -110,6 +112,8 @@ Network_TIC$removeNode(TissueInjury)
 Network_TIC$addNode(TissueInjury)
 
 
+TIC_Model <- Model$new(networks = list(Network_TIC))
+TIC_Model$to_cmpx()
 
 
 
