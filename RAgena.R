@@ -486,6 +486,11 @@ Model <- setRefClass("Model",
                        },
                        to_cmpx = function(){
                          json_object <- generate_cmpx(.self)
+                         fileName <- paste0(.self$id,".cmpx")
+                         write(json_object,fileName)
+                       },
+                       to_json = function(){
+                         json_object <- generate_cmpx(.self)
                          fileName <- paste0(.self$id,".json")
                          write(json_object,fileName)
                        }
