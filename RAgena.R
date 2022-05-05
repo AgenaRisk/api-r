@@ -622,7 +622,7 @@ generate_cmpx <- function(inputModel){
         for (k in 1:length(temp_probs_list)){
           temp_probs_sublist <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$probabilities[[k]]))
           for (m in 1:length(temp_probs_sublist)){
-            temp_probs_list[[k]][m] <- inputModel$networks[[i]]$nodes[[j]]$probabilities[[k]][m]
+            temp_probs_list[[k]][[m]] <- inputModel$networks[[i]]$nodes[[j]]$probabilities[[k]][[m]]
           }
         }
         table_list[[i]][[j]]$probabilities <- temp_probs_list
