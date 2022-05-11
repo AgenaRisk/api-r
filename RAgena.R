@@ -521,7 +521,6 @@ from_cmpx <- function(modelPath){
                                  name = cmpx_networks[[i]]$name,
                                  description = cmpx_networks[[i]]$description)
     
-
     #filling in the list of Node objects with each node of each network
     #keep in mind this list is two dimensional, each list element is a list of Nodes itself
     for (j in 1:length(cmpx_networks[[i]]$nodes)){
@@ -529,7 +528,7 @@ from_cmpx <- function(modelPath){
                                   name = cmpx_networks[[i]]$nodes[[j]]$name,
                                   description = cmpx_networks[[i]]$nodes[[j]]$description,
                                   type = cmpx_networks[[i]]$nodes[[j]]$configuration$type)
-                                  
+      
       if(is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$simulated)){
         nodes[[i]][[j]]$simulated <- FALSE
       } else{
@@ -537,28 +536,11 @@ from_cmpx <- function(modelPath){
       }
       
       nodes[[i]][[j]]$distr_type = cmpx_networks[[i]]$nodes[[j]]$configuration$table$type
-      
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)){
-        nodes[[i]][[j]]$states <- cmpx_networks[[i]]$nodes[[j]]$configuration$states
-        nodes[[i]][[j]]$probabilities <- vector(mode = "list", length = length(nodes[[i]][[j]]$states))
-        for (k in 1:length(nodes[[i]][[j]]$states)){
-          nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
-        }
-      }
-
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)){
-        nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
-      }
-      
-      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions)){
-        nodes[[i]][[j]]$partitions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions
-      }
     }
-    
     networks[[i]]$nodes <- nodes[[i]]
     links[[i]] <- cmpx_networks[[i]]$links
   }
-  
+
   for (i in 1:length(networks)) {
     for (j in 1:length(networks[[i]]$nodes)){
       for (k in 1:length(links[[i]])){
@@ -568,6 +550,28 @@ from_cmpx <- function(modelPath){
       }
     }
   }
+  
+  
+  for (i in 1:length(cmpx_networks)){
+    for (j in 1:length(cmpx_networks[[i]]$nodes)){
+      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)){
+        nodes[[i]][[j]]$states <- cmpx_networks[[i]]$nodes[[j]]$configuration$states
+        nodes[[i]][[j]]$probabilities <- vector(mode = "list", length = length(nodes[[i]][[j]]$states))
+        for (k in 1:length(nodes[[i]][[j]]$states)){
+          nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
+        }
+      }
+      
+      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)){
+        nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
+      }
+      
+      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions)){
+        nodes[[i]][[j]]$partitions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions
+      }
+    }
+    }
+
   
   for (i in 1:length(cmpx_dataSets)){
     datasets[[i]] <- Dataset$new(id = cmpx_dataSets[[i]]$id)
