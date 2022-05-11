@@ -663,7 +663,7 @@ generate_cmpx <- function(inputModel){
                                     output = FALSE,
                                     table = table_list[[i]][[j]]
                                     )
-      if(!inputModel$networks[[i]]$nodes[[j]]$simulated && inputModel$networks[[i]]$nodes[[j]]$distr_type == "Manual"){
+      if(!inputModel$networks[[i]]$nodes[[j]]$simulated){
         temp_states_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$states))
         for (k in 1:length(inputModel$networks[[i]]$nodes[[j]]$states)){
           temp_states_list[k] <- inputModel$networks[[i]]$nodes[[j]]$states[k]
