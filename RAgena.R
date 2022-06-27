@@ -11,7 +11,7 @@
 #probabilities: list of numeric values if Node$simulated == FALSE, length of the list is either # of states x # of all parent states (if distr_type manual), or it depends on the expressions/partitions
 #expressions: list of strings if Node$distr_type != "Manual", length is 1 if Node$distr_type == "Expression", length is # of partitions if Node$distr_type == "Partitioned"
 #partitions: list of parent IDs which partitioned expressions are based on if Node$distr_type == "Partitioned"
-#variables: ***
+#variables: list of variables (name and value)
 Node <- setRefClass("Node",
                     fields = list(id = "character",
                                   name = "character",
@@ -352,6 +352,10 @@ Node <- setRefClass("Node",
                         } else {
                             expressions <<- new_expr ######need to make sure length of exprs is 1 if not partitioned
                         }
+                      },
+                      setVariables = function(variables_list){
+                        
+                        variables <<- variables_list
                       })
                     )
 
@@ -443,7 +447,16 @@ Network <- setRefClass("Network",
 Dataset <- setRefClass("Dataset",
                        fields = list(id = "character",
                                 observations = "list",
-                                results = "list")) #these Dataset objects will be compatible with a reasonable data input file / csv to create them
+                                results = "list"),
+                       methods = list(
+                         initialize = function(id, observations){
+                             .self$id <<- id
+                             if(!is.null(observations)){
+                               .self$observations <<- observations
+                             }
+                             
+                         }
+                       )) 
 
 
 #Model object as an R reference class
@@ -462,19 +475,25 @@ Model <- setRefClass("Model",
                            cat("\n-",nt$id)
                          }
                        },
-                       initialize = function(id=NULL, networks, dataSets=NULL, networkLinks=NULL){
-                         if(!is.null(networkLinks)){
-                           .self$networkLinks <<- networkLinks
-                         }
-                         if(!is.null(dataSets)){
-                           .self$dataSets <<- dataSets
-                         }
+                       initialize = function(id=NULL, networks, from_cmpx=FALSE, dataSets = NULL, networkLinks = NULL){
                          if(is.null(id)){
                            .self$id <<- paste(networks[[1]]$id,"Model")
                          } else{
                            .self$id <<- id
                          }
                          .self$networks <<- networks
+                         if(!from_cmpx){
+                           .self$dataSets[[1]] <- Dataset$new(id="Scenario 1",observations=NULL) 
+                         }
+                         if(from_cmpx){
+                           if(!is.null(dataSets)){
+                             .self$dataSets <<- dataSets 
+                           }
+                           if(!is.null(networkLinks)){
+                             .self$networkLinks <<- networkLinks
+                           }
+                           
+                         }
                        },
                        addNetworkLink = function(outNetwork,outNode,inNetwork,inNode,linkType){
                          #check if both nodes are the same type and either of them is simulated
@@ -484,15 +503,82 @@ Model <- setRefClass("Model",
                          #type in c("Marginals", "Mean", "Median", "Variance", "StandardDeviation", "LowerPercentile", "UpperPercentile", "State")
                          #if type state, passState string must appear
                        },
-                       to_cmpx = function(){
-                         json_object <- generate_cmpx(.self)
-                         fileName <- paste0(.self$id,".cmpx")
-                         write(json_object,fileName)
+                       create_scenario = function(id){
+                         dataSets <<- append(dataSets,Dataset$new(id=id, observations=NULL))
                        },
-                       to_json = function(){
+                       enter_observation = function(scenario=NULL, node, network, value){
+                         if(is.null(scenario)){
+                           new_obs <- list(node=node,
+                                           network = network,
+                                           entries = list())
+                           new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           
+                           exist_check <- 0
+                           if(length(dataSets[[1]]$observations)>0){
+                             for (i in 1:length(dataSets[[1]]$observations)){
+                               if(node == dataSets[[1]]$observations[[i]]$node && network == dataSets[[1]]$observations[[i]]$network){
+                                 dataSets[[1]]$observations[[i]]$entries <<- new_obs$entries[[1]]
+                                 exist_check <- 1
+                               }
+                             }
+                           }
+
+                           
+                           if(exist_check == 0){
+                             cur_length <- length(dataSets[[1]]$observations)
+                             dataSets[[1]]$observations[[cur_length+1]] <<- new_obs
+                           }
+
+                         } else {
+                           new_obs <- list(node=node,
+                                           network = network,
+                                           entries = list())
+                           new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           
+                           
+                           for (i in 1:length(dataSets)){
+                             if(scenario == dataSets[[i]]$id){
+                               
+                               exist_check <- 0
+                               if(length(dataSets[[i]]$observations)>0){
+                                 for (j in 1:length(dataSets[[i]]$observations)){
+                                   if(node == dataSets[[i]]$observations[[j]]$node && network == dataSets[[i]]$observations[[j]]$network){
+                                     dataSets[[i]]$observations[[j]]$entries <<- new_obs$entries[[1]]
+                                     exist_check <- 1
+                                   }
+                                 }
+                               }
+                               
+                               
+                               if(exist_check == 0){
+                                 cur_length <- length(dataSets[[i]]$observations)
+                                 dataSets[[i]]$observations[[cur_length+1]] <<- new_obs
+                               }
+
+                             }
+                           }
+                         }
+                       },
+                       clear_all_observations = function(){
+                         remove_all_observations(.self)
+                       },
+                       to_cmpx = function(filename=NULL){
                          json_object <- generate_cmpx(.self)
-                         fileName <- paste0(.self$id,".json")
-                         write(json_object,fileName)
+                         if(is.null(filename)){
+                           file_name <- paste0(.self$id,".cmpx")
+                         } else {
+                           file_name <- paste0(filename,".cmpx")
+                         }
+                         write(json_object,file_name)
+                       },
+                       to_json = function(filename=NULL){
+                         json_object <- generate_cmpx(.self)
+                         if(is.null(filename)){
+                           file_name <- paste0(.self$id,".json")
+                         } else {
+                           file_name <- paste0(filename,".json")
+                         }
+                         write(json_object,file_name)
                        }
                      )) 
 
@@ -536,6 +622,7 @@ from_cmpx <- function(modelPath){
       }
       
       nodes[[i]][[j]]$distr_type = cmpx_networks[[i]]$nodes[[j]]$configuration$table$type
+      
     }
     networks[[i]]$nodes <- nodes[[i]]
     links[[i]] <- cmpx_networks[[i]]$links
@@ -570,16 +657,34 @@ from_cmpx <- function(modelPath){
         nodes[[i]][[j]]$partitions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions
       }
     }
-    }
+  }
+  
+  for (i in 1:length(networks)) {
+    for (j in 1:length(networks[[i]]$nodes)){
+      if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$variables)){
+        nodes[[i]][[j]]$variables <- list()
+        
+        for (k in 1:length(cmpx_networks[[i]]$nodes[[j]]$configuration$variables)){
+          nodes[[i]][[j]]$variables[[k]] <- list(cmpx_networks[[i]]$nodes[[j]]$configuration$variables[[k]]$name,
+                                                 cmpx_networks[[i]]$nodes[[j]]$configuration$variables[[k]]$value)
+        }
+
+      }
+
+      
+    }}
 
   
   for (i in 1:length(cmpx_dataSets)){
-    datasets[[i]] <- Dataset$new(id = cmpx_dataSets[[i]]$id)
+    datasets[[i]] <- Dataset$new(id = cmpx_dataSets[[i]]$id,observations=NULL)
     
     datasets[[i]]$observations <- cmpx_dataSets[[i]]$observations
+    datasets[[i]]$results <- cmpx_dataSets[[i]]$results
   }
   
-  outputModel <- Model$new(networks = networks,
+
+  outputModel <- Model$new(from_cmpx=TRUE,
+                           networks = networks,
                            networkLinks = cmpx_networkLinks,
                            dataSets = datasets)
   
@@ -610,6 +715,21 @@ generate_cmpx <- function(inputModel){
   for (i in 1:length(table_list)) {
     table_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
+  
+  variables_list <- vector(mode = "list", length = length(inputModel$networks))
+  for (i in 1:length(table_list)) {
+    variables_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
+  }
+  
+  datasets_list <- vector(mode = "list", length = length(inputModel$dataSets))
+  
+  obs_list <- vector(mode = "list", length = length(inputModel$dataSets))
+  for (i in 1:length(obs_list)){
+    obs_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$observations))
+  }
+  
+
+  
   
   links_list <- vector(mode = "list", length = length(inputModel$networks))
   for (i in 1:length(nodes_list)) {
@@ -654,14 +774,33 @@ generate_cmpx <- function(inputModel){
     }
   }
   
+  #variables_list generation
+  for (i in 1:length(variables_list)){
+    for (j in 1:length(variables_list[[i]])){
+      
+      if(length(inputModel$networks[[i]]$nodes[[j]]$variables)>0){
+        temp_vars_length <- length(inputModel$networks[[i]]$nodes[[j]]$variables)
+        variables_list[[i]][[j]] <- vector(mode = "list", length = temp_vars_length)
+        
+        for (k in 1:temp_vars_length){
+          variables_list[[i]][[j]][[k]] <- list(name = inputModel$networks[[i]]$nodes[[j]]$variables[[k]][[1]],
+                                                value = inputModel$networks[[i]]$nodes[[j]]$variables[[k]][[2]])
+        }
+      }
+      
 
+    }}
+      
+      
+      
   for (i in 1:length(config_list)){
     for (j in 1:length(config_list[[i]])){
       config_list[[i]][[j]] <- list(type = inputModel$networks[[i]]$nodes[[j]]$type,
                                     simulated = inputModel$networks[[i]]$nodes[[j]]$simulated,
                                     input = FALSE,
                                     output = FALSE,
-                                    table = table_list[[i]][[j]]
+                                    table = table_list[[i]][[j]],
+                                    variables = variables_list[[i]][[j]]
                                     )
       if(!inputModel$networks[[i]]$nodes[[j]]$simulated){
         temp_states_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$states))
@@ -671,7 +810,7 @@ generate_cmpx <- function(inputModel){
         config_list[[i]][[j]]$states <- temp_states_list
       }
     }
-  } #still needs variables <- vars_list
+  }
   
 
   
@@ -732,6 +871,50 @@ generate_cmpx <- function(inputModel){
     networklinks_list <- inputModel$networkLinks
   }
   
+  if(length(inputModel$dataSets)==1 && length(inputModel$dataSets[[1]]$observations)==0){
+    datasets_list[[1]] <- list(id = inputModel$dataSets[[1]]$id,
+                               observations =  inputModel$dataSets[[1]]$observations) 
+  } else {
+    entries_list <- vector(mode = "list", length = length(inputModel$dataSets))
+    for (i in 1:length(entries_list)){
+      entries_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$observations))
+      for (j in 1:length(entries_list[[i]])){
+        entries_list[[i]][[j]] <- vector(mode = "list",length = length(inputModel$dataSets[[i]]$observations[[j]]$entries))
+      }
+    }
+    
+    for (i in 1:length(datasets_list)){
+      for (j in 1:length(inputModel$dataSets[[i]]$observations)){
+        for (k in 1:length(inputModel$dataSets[[i]]$observations[[j]]$entries)){
+          entries_list[[i]][[j]][[k]] <- list(weight = inputModel$dataSets[[i]]$observations[[j]]$entries[[k]]$weight,
+                                              value = inputModel$dataSets[[i]]$observations[[j]]$entries[[k]]$value)
+        }
+      }
+    }
+    
+    for (i in 1:length(datasets_list)){
+      for (j in 1:length(inputModel$dataSets[[i]]$observations)){
+        if(!is.null(inputModel$dataSets[[i]]$observations[[j]]$constantName)){
+          obs_list[[i]][[j]] <- list(node = inputModel$dataSets[[i]]$observations[[j]]$node,
+                                     network = inputModel$dataSets[[i]]$observations[[j]]$network,
+                                     constantName = inputModel$dataSets[[i]]$observations[[j]]$constantName,
+                                     entries = entries_list[[i]][[j]])
+        } else {
+          obs_list[[i]][[j]] <- list(node = inputModel$dataSets[[i]]$observations[[j]]$node,
+                                     network = inputModel$dataSets[[i]]$observations[[j]]$network,
+                                     entries = entries_list[[i]][[j]])
+        }
+        
+      }
+      datasets_list[[i]] <- list(id = inputModel$dataSets[[i]]$id,
+                                 observations = obs_list[[i]])
+    }
+  }
+  
+  
+  
+  
+  
   # networklinks_list <- list(sourceNetwork = "placeholder",
   #                           sourceNode = "placeholder",
   #                           targetNetwork = "placeholder",
@@ -740,6 +923,7 @@ generate_cmpx <- function(inputModel){
   #                           passState = "placeholder")
   
   model_list <- list(settings = settings_list,
+                     dataSets = datasets_list,
                      networks = networks_list,
                      links = networklinks_list)
   
@@ -749,5 +933,36 @@ generate_cmpx <- function(inputModel){
 
 }
 
+
+remove_all_observations <- function(inputModel){
+  
+  for (i in 1:length(inputModel$dataSets)){
+    inputModel$dataSets[[i]]$observations <- list()
+  }
+}
+
+create_batch_cases <- function(inputModel, inputData){
+  
+  inputTable <- read.csv(file=inputData)
+  col_headers <- names(inputTable)[-1]
+  obs_nodes <- c()
+  obs_networks <- c()
+  for (nm in col_headers){
+    obs_nodes <- append(obs_nodes,gsub("\\..*", "", nm))
+    obs_networks <- append(obs_networks,gsub(".*\\.", "", nm))
+  }
+  
+  
+
+  for (i in 1:length(inputTable)){
+    for (j in 1:length(col_headers)){
+      inputModel$enter_observation(node=obs_nodes[j],network=obs_networks[j],value=inputTable[i,][[j+1]])
+    }
+    filename <- paste0(inputModel$id,"_",inputTable[[1]][i])
+    inputModel$to_json(filename=filename)
+    inputModel$clear_all_observations()
+  }
+  
+}
 
 
