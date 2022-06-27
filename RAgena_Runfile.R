@@ -2,7 +2,7 @@ source("RAgena.R")
 
 ###dev testing
 # modelPath <- "Models/AdvancedReliabilityModelling.cmpx"
-# modelPath <- "Models/CarCosts.cmpx"
+modelPath <- "Models/CarCosts.cmpx"
 modelPath <- "Models/Asia.cmpx"
 ###
 
@@ -11,9 +11,11 @@ car_costs_path = "Models/CarCosts.cmpx"
 car_model <- from_cmpx(car_costs_path)
 
 car_model$to_cmpx()
+car_model$to_json()
 
 #dev
-# inputModel <- car_model
+inputModel <- car_model
+inputModel <- TIC_Model
 # inputModel <- rel_model
 
 
@@ -99,9 +101,29 @@ Network_TIC$addNode(TissueInjury)
 
 
 TIC_Model <- Model$new(networks = list(Network_TIC))
-TIC_Model$to_cmpx()
+# TIC_Model$to_cmpx()
+TIC_Model$to_json("custom-name-tic")
 TIC_Model$to_json()
 
+TIC_Model$dataSets[[1]]$observations
+TIC_Model$create_scenario("Scenario 2")
+TIC_Model$dataSets[[1]]$observations
 
+TIC_Model$networks
+TIC_Model$networks[[1]]$nodes
+TIC_Model$enter_observation(node="TIC",network="TIC_Network",value="Yes")
+TIC_Model$enter_observation(node="HeartRate",network="TIC_Network",value="100")
+TIC_Model$enter_observation(node="Energy",network="TIC_Network",value="High")
+TIC_Model$enter_observation(node="HeartRate",network="TIC_Network",value="95")
+TIC_Model$enter_observation(scenario="Scenario 2",node="HeartRate",network="TIC_Network",value="95")
+TIC_Model$enter_observation(scenario="Scenario 2",node="HeartRate",network="TIC_Network",value="100")
+TIC_Model$enter_observation(scenario="Scenario 2",node="Energy",network="TIC_Network",value="Low")
+TIC_Model$enter_observation(scenario="Scenario 1",node="Energy",network="TIC_Network",value="Low")
+TIC_Model$enter_observation(node="Energy",network="TIC_Network",value="High")
 
+create_batch_cases(TIC_Model,"TICdataset.csv")
+TIC_Model$dataSets
+TIC_Model$clear_all_observations()
 
+inputModel <- TIC_Model
+inputData <- "TICdataset.csv"
