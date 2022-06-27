@@ -512,30 +512,73 @@ Model <- setRefClass("Model",
                                            network = network,
                                            entries = list())
                            new_obs$entries[[1]] <- list(weight = 1, value = value)
-                           cur_length <- length(dataSets[[1]]$observations)
-                           dataSets[[1]]$observations[[cur_length+1]] <<- new_obs
+                           
+                           exist_check <- 0
+                           if(length(dataSets[[1]]$observations)>0){
+                             for (i in 1:length(dataSets[[1]]$observations)){
+                               if(node == dataSets[[1]]$observations[[i]]$node && network == dataSets[[1]]$observations[[i]]$network){
+                                 dataSets[[1]]$observations[[i]]$entries <<- new_obs$entries[[1]]
+                                 exist_check <- 1
+                               }
+                             }
+                           }
+
+                           
+                           if(exist_check == 0){
+                             cur_length <- length(dataSets[[1]]$observations)
+                             dataSets[[1]]$observations[[cur_length+1]] <<- new_obs
+                           }
+
                          } else {
                            new_obs <- list(node=node,
                                            network = network,
                                            entries = list())
                            new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           
+                           
                            for (i in 1:length(dataSets)){
                              if(scenario == dataSets[[i]]$id){
-                               cur_length <- length(dataSets[[i]]$observations)
-                               dataSets[[i]]$observations[[cur_length+1]] <<- new_obs
+                               
+                               exist_check <- 0
+                               if(length(dataSets[[i]]$observations)>0){
+                                 for (j in 1:length(dataSets[[i]]$observations)){
+                                   if(node == dataSets[[i]]$observations[[j]]$node && network == dataSets[[i]]$observations[[j]]$network){
+                                     dataSets[[i]]$observations[[j]]$entries <<- new_obs$entries[[1]]
+                                     exist_check <- 1
+                                   }
+                                 }
+                               }
+                               
+                               
+                               if(exist_check == 0){
+                                 cur_length <- length(dataSets[[i]]$observations)
+                                 dataSets[[i]]$observations[[cur_length+1]] <<- new_obs
+                               }
+
                              }
                            }
                          }
                        },
-                       to_cmpx = function(){
-                         json_object <- generate_cmpx(.self)
-                         fileName <- paste0(.self$id,".cmpx")
-                         write(json_object,fileName)
+                       clear_all_observations = function(){
+                         remove_all_observations(.self)
                        },
-                       to_json = function(){
+                       to_cmpx = function(filename=NULL){
                          json_object <- generate_cmpx(.self)
-                         fileName <- paste0(.self$id,".json")
-                         write(json_object,fileName)
+                         if(is.null(filename)){
+                           file_name <- paste0(.self$id,".cmpx")
+                         } else {
+                           file_name <- paste0(filename,".cmpx")
+                         }
+                         write(json_object,file_name)
+                       },
+                       to_json = function(filename=NULL){
+                         json_object <- generate_cmpx(.self)
+                         if(is.null(filename)){
+                           file_name <- paste0(.self$id,".json")
+                         } else {
+                           file_name <- paste0(filename,".json")
+                         }
+                         write(json_object,file_name)
                        }
                      )) 
 
@@ -890,5 +933,36 @@ generate_cmpx <- function(inputModel){
 
 }
 
+
+remove_all_observations <- function(inputModel){
+  
+  for (i in 1:length(inputModel$dataSets)){
+    inputModel$dataSets[[i]]$observations <- list()
+  }
+}
+
+create_batch_cases <- function(inputModel, inputData){
+  
+  inputTable <- read.csv(file=inputData)
+  col_headers <- names(inputTable)[-1]
+  obs_nodes <- c()
+  obs_networks <- c()
+  for (nm in col_headers){
+    obs_nodes <- append(obs_nodes,gsub("\\..*", "", nm))
+    obs_networks <- append(obs_networks,gsub(".*\\.", "", nm))
+  }
+  
+  
+
+  for (i in 1:length(inputTable)){
+    for (j in 1:length(col_headers)){
+      inputModel$enter_observation(node=obs_nodes[j],network=obs_networks[j],value=inputTable[i,][[j+1]])
+    }
+    filename <- paste0(inputModel$id,"_",inputTable[[1]][i])
+    inputModel$to_json(filename=filename)
+    inputModel$clear_all_observations()
+  }
+  
+}
 
 
