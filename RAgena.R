@@ -153,7 +153,7 @@ Node <- setRefClass("Node",
                           } else {
                             .self$distr_type <<- "Manual"
                             .self$probabilities <<- vector(mode = "list", length = length(.self$states))
-                            for (i in 1:length(.self$probabilities)){
+                            for (i in seq_along(.self$probabilities)){
                               probabilities[[i]] <<- 1/length(.self$probabilities)
                             }
                           }
@@ -162,7 +162,7 @@ Node <- setRefClass("Node",
                       getParents = function(){
                         parList <- c()
                         if(length(.self$parents)>0){
-                          for (i in 1:length(.self$parents)) {
+                          for (i in seq_along(.self$parents)) {
                             parList[i] <- .self$parents[[i]]$id
                           }
                         }
@@ -194,7 +194,7 @@ Node <- setRefClass("Node",
                           }
                           
                           .self$setProbabilities(updated_probs)
-                          for (i in 1:length(.self$probabilities)){
+                          for (i in seq_along(.self$probabilities)){
                             probabilities[[i]] <<- rep(1/length(.self$probabilities),temp_length)
                           }
                           
@@ -207,7 +207,7 @@ Node <- setRefClass("Node",
                         'This is a method to add parent Nodes by their ids for cmpx parser capabilities.
                         To add parents to Node objects, please use $addParent(Node) method.'
                         
-                        for (i in 1:length(varList)){
+                        for (i in seq_along(varList)){
                           if(newParentID == varList[[i]]$id){
                             .self$addParent(varList[[i]])
                           }
@@ -218,7 +218,7 @@ Node <- setRefClass("Node",
                         'Removes a Node object from parents of the current Node object and resets/resizes the NPT values and expressions of the Node as needed.
                         The input parameter of the function is a Node object variable. A good practice is to use Node ids as their variable names.'
                         if(oldParent$id %in% .self$getParents()){
-                          for (i in 1:length(.self$parents)){
+                          for (i in seq_along(.self$parents)){
                             if(oldParent$id == .self$parents[[i]]$id){
                               parents <<- .self$parents[-i]
                               break
@@ -236,7 +236,7 @@ Node <- setRefClass("Node",
                           }
                           
                           .self$setProbabilities(updated_probs)
-                          for (i in 1:length(.self$probabilities)){
+                          for (i in seq_along(.self$probabilities)){
                             probabilities[[i]] <<- rep(1/length(.self$probabilities),temp_length)
                           }
                           cat("Node",oldParent$name,"has been removed from the parents list of",.self$name,"\nNPT values for",.self$name,"are reset to uniform\n")
@@ -336,8 +336,8 @@ Node <- setRefClass("Node",
                             }
                             
                             if(subset_length_control == 1){
-                              for (i in 1:length(new_probs)){
-                                for (j in 1:length(new_probs[[i]])){
+                              for (i in seq_along(new_probs)){
+                                for (j in seq_along(new_probs[[i]])){
                                   probabilities[[j]][[i]] <<- new_probs[[i]][[j]] 
                                 }
                               }
@@ -400,7 +400,7 @@ Network <- setRefClass("Network",
                          getNodes = function(){
                            nodeList <- c()
                            if(length(.self$nodes)>0){
-                             for (i in 1:length(.self$nodes)) {
+                             for (i in seq_along(.self$nodes)) {
                                nodeList[i] <- .self$nodes[[i]]$id
                              }
                            }
@@ -426,7 +426,7 @@ Network <- setRefClass("Network",
                          removeNode = function(oldNode){
                            'remove Node from Network'
                            if(oldNode$id %in% .self$getNodes()){
-                             for (i in 1:length(.self$nodes)){
+                             for (i in seq_along(.self$nodes)){
                                if(oldNode$id == .self$nodes[[i]]$id){
                                  nodes <<- nodes[-i]
                                  break
@@ -515,7 +515,7 @@ Model <- setRefClass("Model",
                            
                            exist_check <- 0
                            if(length(dataSets[[1]]$observations)>0){
-                             for (i in 1:length(dataSets[[1]]$observations)){
+                             for (i in seq_along(dataSets[[1]]$observations)){
                                if(node == dataSets[[1]]$observations[[i]]$node && network == dataSets[[1]]$observations[[i]]$network){
                                  dataSets[[1]]$observations[[i]]$entries <<- new_obs$entries[[1]]
                                  exist_check <- 1
@@ -536,12 +536,12 @@ Model <- setRefClass("Model",
                            new_obs$entries[[1]] <- list(weight = 1, value = value)
                            
                            
-                           for (i in 1:length(dataSets)){
+                           for (i in seq_along(dataSets)){
                              if(scenario == dataSets[[i]]$id){
                                
                                exist_check <- 0
                                if(length(dataSets[[i]]$observations)>0){
-                                 for (j in 1:length(dataSets[[i]]$observations)){
+                                 for (j in seq_along(dataSets[[i]]$observations)){
                                    if(node == dataSets[[i]]$observations[[j]]$node && network == dataSets[[i]]$observations[[j]]$network){
                                      dataSets[[i]]$observations[[j]]$entries <<- new_obs$entries[[1]]
                                      exist_check <- 1
@@ -602,14 +602,14 @@ from_cmpx <- function(modelPath){
   results <- vector(mode = "list",length = length(cmpx_dataSets))
   
   #filling in the list of Network objects with each network in the CMPX model
-  for (i in 1:length(cmpx_networks)){
+  for (i in seq_along(cmpx_networks)){
     networks[[i]] <- Network$new(id = cmpx_networks[[i]]$id,
                                  name = cmpx_networks[[i]]$name,
                                  description = cmpx_networks[[i]]$description)
     
     #filling in the list of Node objects with each node of each network
     #keep in mind this list is two dimensional, each list element is a list of Nodes itself
-    for (j in 1:length(cmpx_networks[[i]]$nodes)){
+    for (j in seq_along(cmpx_networks[[i]]$nodes)){
       nodes[[i]][[j]] <- Node$new(id = cmpx_networks[[i]]$nodes[[j]]$id,
                                   name = cmpx_networks[[i]]$nodes[[j]]$name,
                                   description = cmpx_networks[[i]]$nodes[[j]]$description,
@@ -628,9 +628,9 @@ from_cmpx <- function(modelPath){
     links[[i]] <- cmpx_networks[[i]]$links
   }
 
-  for (i in 1:length(networks)) {
-    for (j in 1:length(networks[[i]]$nodes)){
-      for (k in 1:length(links[[i]])){
+  for (i in seq_along(networks)) {
+    for (j in seq_along(networks[[i]]$nodes)){
+      for (k in seq_along(links[[i]])){
         if (links[[i]][[k]]$child == networks[[i]]$nodes[[j]]$id){
           networks[[i]]$nodes[[j]]$addParent_byID(links[[i]][[k]]$parent,networks[[i]]$nodes)
         }
@@ -639,12 +639,12 @@ from_cmpx <- function(modelPath){
   }
   
   
-  for (i in 1:length(cmpx_networks)){
-    for (j in 1:length(cmpx_networks[[i]]$nodes)){
+  for (i in seq_along(cmpx_networks)){
+    for (j in seq_along(cmpx_networks[[i]]$nodes)){
       if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)){
         nodes[[i]][[j]]$states <- cmpx_networks[[i]]$nodes[[j]]$configuration$states
         nodes[[i]][[j]]$probabilities <- vector(mode = "list", length = length(nodes[[i]][[j]]$states))
-        for (k in 1:length(nodes[[i]][[j]]$states)){
+        for (k in seq_along(nodes[[i]][[j]]$states)){
           nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
         }
       }
@@ -659,12 +659,12 @@ from_cmpx <- function(modelPath){
     }
   }
   
-  for (i in 1:length(networks)) {
-    for (j in 1:length(networks[[i]]$nodes)){
+  for (i in seq_along(networks)) {
+    for (j in seq_along(networks[[i]]$nodes)){
       if(!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$variables)){
         nodes[[i]][[j]]$variables <- list()
         
-        for (k in 1:length(cmpx_networks[[i]]$nodes[[j]]$configuration$variables)){
+        for (k in seq_along(cmpx_networks[[i]]$nodes[[j]]$configuration$variables)){
           nodes[[i]][[j]]$variables[[k]] <- list(cmpx_networks[[i]]$nodes[[j]]$configuration$variables[[k]]$name,
                                                  cmpx_networks[[i]]$nodes[[j]]$configuration$variables[[k]]$value)
         }
@@ -675,7 +675,7 @@ from_cmpx <- function(modelPath){
     }}
 
   
-  for (i in 1:length(cmpx_dataSets)){
+  for (i in seq_along(cmpx_dataSets)){
     datasets[[i]] <- Dataset$new(id = cmpx_dataSets[[i]]$id,observations=NULL)
     
     datasets[[i]]$observations <- cmpx_dataSets[[i]]$observations
@@ -702,29 +702,29 @@ generate_cmpx <- function(inputModel){
   networks_list <- vector(mode = "list", length = length(inputModel$networks))
   
   nodes_list <- vector(mode = "list", length = length(inputModel$networks))
-  for (i in 1:length(nodes_list)) {
+  for (i in seq_along(nodes_list)) {
     nodes_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
   
   config_list <- vector(mode = "list", length = length(inputModel$networks))
-  for (i in 1:length(config_list)) {
+  for (i in seq_along(config_list)) {
     config_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
   
   table_list <- vector(mode = "list", length = length(inputModel$networks))
-  for (i in 1:length(table_list)) {
+  for (i in seq_along(table_list)) {
     table_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
   
   variables_list <- vector(mode = "list", length = length(inputModel$networks))
-  for (i in 1:length(table_list)) {
+  for (i in seq_along(table_list)) {
     variables_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
   
   datasets_list <- vector(mode = "list", length = length(inputModel$dataSets))
   
   obs_list <- vector(mode = "list", length = length(inputModel$dataSets))
-  for (i in 1:length(obs_list)){
+  for (i in seq_along(obs_list)){
     obs_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$observations))
   }
   
@@ -732,7 +732,7 @@ generate_cmpx <- function(inputModel){
   
   
   links_list <- vector(mode = "list", length = length(inputModel$networks))
-  for (i in 1:length(nodes_list)) {
+  for (i in seq_along(nodes_list)) {
     links_amount <- 0
     for (nd in inputModel$networks[[i]]$nodes){
       links_amount <- links_amount + length(nd$parents)
@@ -742,15 +742,15 @@ generate_cmpx <- function(inputModel){
   
   
   #table_list generation
-  for (i in 1:length(table_list)){
-    for (j in 1:length(table_list[[i]])){
+  for (i in seq_along(table_list)){
+    for (j in seq_along(table_list[[i]])){
       table_list[[i]][[j]] <- list(type = inputModel$networks[[i]]$nodes[[j]]$distr_type)
       if(inputModel$networks[[i]]$nodes[[j]]$distr_type == "Manual"){
         #table_list[[i]][[j]]$probabilities <- inputModel$networks[[i]]$nodes[[j]]$probabilities
         temp_probs_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$probabilities))
-        for (k in 1:length(temp_probs_list)){
+        for (k in seq_along(temp_probs_list)){
           temp_probs_sublist <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$probabilities[[k]]))
-          for (m in 1:length(temp_probs_sublist)){
+          for (m in seq_along(temp_probs_sublist)){
             temp_probs_list[[k]][[m]] <- inputModel$networks[[i]]$nodes[[j]]$probabilities[[k]][[m]]
           }
         }
@@ -762,10 +762,10 @@ generate_cmpx <- function(inputModel){
       } else if (inputModel$networks[[i]]$nodes[[j]]$distr_type == "Partitioned"){
         temp_part_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$partitions))
         temp_exp_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$expressions))
-        for (k in 1:length(temp_part_list)){
+        for (k in seq_along(temp_part_list)){
           temp_part_list[k] <- inputModel$networks[[i]]$nodes[[j]]$partitions[[k]]
         }
-        for (k in 1:length(temp_exp_list)){
+        for (k in seq_along(temp_exp_list)){
           temp_exp_list[k] <- inputModel$networks[[i]]$nodes[[j]]$expressions[[k]]
         }
         table_list[[i]][[j]]$partitions <- temp_part_list
@@ -775,8 +775,8 @@ generate_cmpx <- function(inputModel){
   }
   
   #variables_list generation
-  for (i in 1:length(variables_list)){
-    for (j in 1:length(variables_list[[i]])){
+  for (i in seq_along(variables_list)){
+    for (j in seq_along(variables_list[[i]])){
       
       if(length(inputModel$networks[[i]]$nodes[[j]]$variables)>0){
         temp_vars_length <- length(inputModel$networks[[i]]$nodes[[j]]$variables)
@@ -793,8 +793,8 @@ generate_cmpx <- function(inputModel){
       
       
       
-  for (i in 1:length(config_list)){
-    for (j in 1:length(config_list[[i]])){
+  for (i in seq_along(config_list)){
+    for (j in seq_along(config_list[[i]])){
       config_list[[i]][[j]] <- list(type = inputModel$networks[[i]]$nodes[[j]]$type,
                                     simulated = inputModel$networks[[i]]$nodes[[j]]$simulated,
                                     input = FALSE,
@@ -804,7 +804,7 @@ generate_cmpx <- function(inputModel){
                                     )
       if(!inputModel$networks[[i]]$nodes[[j]]$simulated){
         temp_states_list <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes[[j]]$states))
-        for (k in 1:length(inputModel$networks[[i]]$nodes[[j]]$states)){
+        for (k in seq_along(inputModel$networks[[i]]$nodes[[j]]$states)){
           temp_states_list[k] <- inputModel$networks[[i]]$nodes[[j]]$states[k]
         }
         config_list[[i]][[j]]$states <- temp_states_list
@@ -814,8 +814,8 @@ generate_cmpx <- function(inputModel){
   
 
   
-  for (i in 1:length(nodes_list)) {
-    for (j in 1:length(nodes_list[[i]])){
+  for (i in seq_along(nodes_list)) {
+    for (j in seq_along(nodes_list[[i]])){
       nodes_list[[i]][[j]] <- list(id = inputModel$networks[[i]]$nodes[[j]]$id,
                                    name = inputModel$networks[[i]]$nodes[[j]]$name,
                                    description = inputModel$networks[[i]]$nodes[[j]]$description,
@@ -826,12 +826,12 @@ generate_cmpx <- function(inputModel){
   temp_parents_list <- list()
   temp_children_list <- list()
   
-  for (i in 1:length(inputModel$networks)){
+  for (i in seq_along(inputModel$networks)){
     temp_parents_list[[i]] <- list()
     temp_children_list[[i]] <- list()
-    for (j in 1:length(inputModel$networks[[i]]$nodes)){
+    for (j in seq_along(inputModel$networks[[i]]$nodes)){
       if(length(inputModel$networks[[i]]$nodes[[j]]$parents) != 0){
-        for (k in 1:length(inputModel$networks[[i]]$nodes[[j]]$parents)){
+        for (k in seq_along(inputModel$networks[[i]]$nodes[[j]]$parents)){
           temp_parents_list[[i]] <- append(temp_parents_list[[i]], inputModel$networks[[i]]$nodes[[j]]$parents[[k]]$id)
           temp_children_list[[i]] <- append(temp_children_list[[i]], inputModel$networks[[i]]$nodes[[j]]$id)
         }
@@ -840,8 +840,8 @@ generate_cmpx <- function(inputModel){
   }
   
   
-  for (i in 1:length(links_list)) {
-    for (j in 1:length(links_list[[i]])){
+  for (i in seq_along(links_list)) {
+    for (j in seq_along(links_list[[i]])){
       links_list[[i]][[j]] <- list(parent = temp_parents_list[[i]][[j]],
                                    child = temp_children_list[[i]][[j]])
     }
@@ -849,7 +849,7 @@ generate_cmpx <- function(inputModel){
   
       
 
-  for (i in 1:length(networks_list)) {
+  for (i in seq_along(networks_list)) {
     networks_list[[i]] <- list(id = inputModel$networks[[i]]$id,
                                name = inputModel$networks[[i]]$name,
                                description = inputModel$networks[[i]]$description,
@@ -876,24 +876,24 @@ generate_cmpx <- function(inputModel){
                                observations =  inputModel$dataSets[[1]]$observations) 
   } else {
     entries_list <- vector(mode = "list", length = length(inputModel$dataSets))
-    for (i in 1:length(entries_list)){
+    for (i in seq_along(entries_list)){
       entries_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$observations))
-      for (j in 1:length(entries_list[[i]])){
+      for (j in seq_along(entries_list[[i]])){
         entries_list[[i]][[j]] <- vector(mode = "list",length = length(inputModel$dataSets[[i]]$observations[[j]]$entries))
       }
     }
     
-    for (i in 1:length(datasets_list)){
-      for (j in 1:length(inputModel$dataSets[[i]]$observations)){
-        for (k in 1:length(inputModel$dataSets[[i]]$observations[[j]]$entries)){
+    for (i in seq_along(datasets_list)){
+      for (j in seq_along(inputModel$dataSets[[i]]$observations)){
+        for (k in seq_along(inputModel$dataSets[[i]]$observations[[j]]$entries)){
           entries_list[[i]][[j]][[k]] <- list(weight = inputModel$dataSets[[i]]$observations[[j]]$entries[[k]]$weight,
                                               value = inputModel$dataSets[[i]]$observations[[j]]$entries[[k]]$value)
         }
       }
     }
     
-    for (i in 1:length(datasets_list)){
-      for (j in 1:length(inputModel$dataSets[[i]]$observations)){
+    for (i in seq_along(datasets_list)){
+      for (j in seq_along(inputModel$dataSets[[i]]$observations)){
         if(!is.null(inputModel$dataSets[[i]]$observations[[j]]$constantName)){
           obs_list[[i]][[j]] <- list(node = inputModel$dataSets[[i]]$observations[[j]]$node,
                                      network = inputModel$dataSets[[i]]$observations[[j]]$network,
@@ -936,7 +936,7 @@ generate_cmpx <- function(inputModel){
 
 remove_all_observations <- function(inputModel){
   
-  for (i in 1:length(inputModel$dataSets)){
+  for (i in seq_along(inputModel$dataSets)){
     inputModel$dataSets[[i]]$observations <- list()
   }
 }
@@ -954,8 +954,8 @@ create_batch_cases <- function(inputModel, inputData){
   
   
 
-  for (i in 1:length(inputTable)){
-    for (j in 1:length(col_headers)){
+  for (i in seq_along(inputTable)){
+    for (j in seq_along(col_headers)){
       inputModel$enter_observation(node=obs_nodes[j],network=obs_networks[j],value=inputTable[i,][[j+1]])
     }
     filename <- paste0(inputModel$id,"_",inputTable[[1]][i])
