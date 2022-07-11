@@ -303,7 +303,11 @@ RAgena environment provides certain other functions outside the class methods.
 
 ### 4.4.1 `from_cmpx(modelPath = "/path/to/model/file.cmpx")`
 
-This is the cmpx parser function to import a .cmpx file and create R objects based on the model in the file. To see its use, see [Section 5](#5-importing-a-model-from-cmpx)
+This is the cmpx parser function to import a .cmpx file and create R objects based on the model in the file. To see its use, see [Section 5](#5-importing-a-model-from-cmpx) and [Section 10](#10-ragena-use-case-examples).
+
+### 4.4.2 `create_batch_cases(inputModel, inputData)`
+
+This function takes an R `Model` object (`inputModel`) and an input CSV file (`inputData`) with observations defined in the correct format and creates a batch of .json files for each row in the input dataset. To see its use and the correct format of the CSV file for a model's data, see [Section 9](#9-creating-batch-cases-for-a-model-in-r).
 
 # 5. Importing a Model from .cmpx
 
