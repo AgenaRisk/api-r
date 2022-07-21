@@ -542,6 +542,33 @@ Model <- setRefClass("Model",
                        create_scenario = function(id){
                          dataSets <<- append(dataSets,Dataset$new(id=id, observations=NULL))
                        },
+                       get_scenarios = function(){
+                         scenList <- c()
+                         if (length(.self$dataSets)>0) {
+                           for (i in seq_along(.self$dataSets)) {
+                             scenList[i] <- .self$dataSets[[i]]$id
+                           }
+                         }
+                         else {
+                           scenList <- NULL
+                         }
+                         return(scenList)
+                         
+                       },
+                       remove_scenario = function(oldScenario){
+                         if (oldScenario %in% .self$get_scenarios()) {
+                           for (i in seq_along(.self$dataSets)) {
+                             if (oldScenario == .self$dataSets[[i]]$id) {
+                               dataSets <<- dataSets[-i]
+                               break
+                             }
+                           }
+                           
+                           cat(oldScenario, "is successfully removed from the model's scenarios.")
+                         } else {
+                           cat("This scenario is not in the model")
+                         }
+                       },
                        enter_observation = function(scenario=NULL, node, network, value){
                          if(is.null(scenario)){
                            new_obs <- list(node=node,
@@ -969,6 +996,7 @@ generate_cmpx <- function(inputModel) {
 }
 
 
+
 remove_all_observations <- function(inputModel){
   
   for (i in seq_along(inputModel$dataSets)){
@@ -986,15 +1014,29 @@ create_batch_cases <- function(inputModel, inputData){
     obs_nodes <- append(obs_nodes,gsub("\\..*", "", nm))
     obs_networks <- append(obs_networks,gsub(".*\\.", "", nm))
   }
-  
-  
 
+  # for (i in seq_along(inputTable)){
+  #   temp_id <- as.character(as.character(inputTable[i,][[1]]))
+  #   inputModel$create_scenario(id = temp_id)
+  # }
+  
   for (i in seq_along(inputTable)){
+    temp_id <- as.character(as.character(inputTable[i,][[1]]))
+    inputModel$create_scenario(id = temp_id)
     for (j in seq_along(col_headers)){
-      inputModel$enter_observation(node=obs_nodes[j], network = obs_networks[j], value=inputTable[i,][[j+1]])
+      inputModel$enter_observation(scenario = temp_id,
+                                   node = obs_nodes[j], network = obs_networks[j], 
+                                   value = inputTable[i,][[j+1]])
     }
-    filename <- paste0(inputModel$id, "_", inputTable[[1]][i])
-    inputModel$to_json(filename = filename)
-    inputModel$clear_all_observations()
-  } 
+
+  }
+  filename <- paste0(inputModel$id, "_Batch_Cases")
+  inputModel$to_json(filename = filename)
+  inputModel$clear_all_observations()
+  
+  for (i in seq_along(inputTable)){
+    temp_id <- as.character(as.character(inputTable[i,][[1]]))
+    inputModel$remove_scenario(temp_id)
+  }
+  
 }
