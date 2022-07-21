@@ -493,6 +493,42 @@ Model <- setRefClass("Model",
                            
                          }
                        },
+                       getNetworks = function() {
+                         networkList <- c()
+                         if (length(.self$networks)>0) {
+                           for (i in seq_along(.self$networks)) {
+                             networkList[i] <- .self$networks[[i]]$id
+                           }
+                         }
+                         else {
+                           networkList <- NULL
+                         }
+                         return(networkList)
+                       },
+                       addNetwork = function(newNetwork){
+                         'add Network to the Model'
+                         if (newNetwork$id %in% .self$getNetworks()) {
+                           cat("There is already a network in the model with this ID")
+                         } else {
+                           networks <<- append(networks,newNetwork)
+                           cat(newNetwork$id, "is successfully added to the model")
+                         }
+                       },
+                       removeNetwork = function(oldNetwork) {
+                         'remove Network from the Model'
+                         if (oldNetwork$id %in% .self$getNetworks()) {
+                           for (i in seq_along(.self$networks)) {
+                             if (oldNetwork$id == .self$networks[[i]]$id) {
+                               networks <<- networks[-i]
+                               break
+                             }
+                           }
+                           
+                           cat(oldNetwork$id, "is successfully removed from the model. If", oldNetwork$id, "had any links to other networks, make sure to adjust network links accordingly")
+                         } else {
+                           cat("This network is not in the model")
+                         }
+                       },
                        addNetworkLink = function(outNetwork,outNode,inNetwork,inNode,linkType){
                          #check if both nodes are the same type and either of them is simulated
                          #check if both nodes are the same type and neither is simulated and both have the same number of states
@@ -500,6 +536,8 @@ Model <- setRefClass("Model",
                          
                          #type in c("Marginals", "Mean", "Median", "Variance", "StandardDeviation", "LowerPercentile", "UpperPercentile", "State")
                          #if type state, passState string must appear
+                         
+                         #input Node cannot be a child node
                        },
                        create_scenario = function(id){
                          dataSets <<- append(dataSets,Dataset$new(id=id, observations=NULL))

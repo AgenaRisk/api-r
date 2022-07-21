@@ -262,7 +262,19 @@ A method to see `id`s of all the nodes in a network.
 
 A `Model` object consists of networks, network links, and datasets (and default settings). A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty scenario called "Scenario 1". Following methods can be used to modify `Model` objects: 
 
-### 4.3.1 `addNetworkLink(outNetwork, outNode, inNetwork, inNode, linkType)`
+### 4.3.1 `addNetwork(newNetwork)`
+
+A method to add a new `Network` object to the `networks` field of a `Model` object. The input `newNetwork` is a `Network` object and it is added to the model if it's not already in it.
+
+### 4.3.2 `removeNetwork(oldNetwork)`
+
+A method to remove an existing `Network` object from the model. Note that removing a Node from a network doesn't automatically remove its possible network links to other networks in the model. `networkLinks` field of a `Model` should be adjusted accordingly if needed.
+
+### 4.3.3 `getNetworks()`
+
+A method to see `id`s of all the networks in a model.
+
+### 4.3.4 `addNetworkLink(outNetwork, outNode, inNetwork, inNode, linkType)`
 
 This is the method to add links to a model between its networks. These links start from an "output node" in a network and go to an "input node" in another network. To create the link, the output and input nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
 
@@ -272,11 +284,11 @@ This is the method to add links to a model between its networks. These links sta
 * `inNode` = `Node$id` of the input node
 * `linkType` = a string of the link type name, one of the defined link types in AgenaRisk
 
-### 4.3.2 `create_scenario(id)`
+### 4.3.5 `create_scenario(id)`
 
 It is possible to add multiple scenarios to a model. These scenarios are new `DataSet` objects added to the `dataSets` field of a model. Initially these scenarios have no observations and are only defined by their `id`s. The scenarios are populated with the `enter_observation()` function.
 
-### 4.3.3 `enter_observation(scenario = NULL, node, network, value)`
+### 4.3.6 `enter_observation(scenario = NULL, node, network, value)`
 
 A method to enter observation to a model. To enter the observation to a specific scenario, the scenario id must be given as the input parameter `scenario`. If `scenario` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra scenarios created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this scenario (mimicking the behaviour of entering observation in AgenaRisk Desktop).
 
@@ -285,15 +297,15 @@ The observation is defined with the mandatory input parameters:
 * `network` = `Network$id` of the network the observed node belongs to
 * `value` = the value or state of the observation for the observed node
 
-### 4.3.4 `clear_all_observations()`
+### 4.3.7 `clear_all_observations()`
 
 A method to clear all observations defined in a model. This function removes all observations from all scenarios.
 
-### 4.3.5 `to_cmpx(filename = NULL)`
+### 4.3.8 `to_cmpx(filename = NULL)`
 
 A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .cmpx file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
-### 4.3.6 `to_json(filename = NULL)`
+### 4.3.9 `to_json(filename = NULL)`
 
 A method to export the `Model` to a .json file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .json file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
@@ -345,38 +357,422 @@ new_model$networks[[1]]$nodes[[1]]$id
 
 Once the R model is created from the imported .cmpx file, the `Model` object as well as all of its `Network`, `DataSet`, and `Node` objects can be manipulated using R methods.
 
-# 6. Creating a Model in R
+# 6. Creating and Modifying a Model in R
 
-It is possible to create an AgenaRisk model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used on AgenaRisk servers for calculations and inference. In this section, creating a model is shown step by step, starting with nodes.
+It is possible to create an AgenaRisk model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used with AgenaRisk calculations and inference. In this section, creating a model is shown step by step, starting with nodes.
 
 ## 6.1 Creating Nodes
 
-...
+In the R environment, `Node` objects represent the nodes in BNs, and you can create `Node` objects before creating and defining any network. To create a new node, only its id (unique identifier) is mandatory, you can define some other optional fields upon creation if desired. A new node creation function takes the following parameters where id is the only mandatory one and all others are optional:
 
-## 6.2 Creating Networks
+```r
+Node$new(id, name, description, type, simulated, states)
 
-...
+# id parameter is mandatory
+# the rest is optional
+```
 
-## 6.3 Creating the Model
+If the optional fields are not specified, the nodes will be created with the defaults. The default values for the fields, if they are not specified, are:
 
-...
+* name = node id
+* description = "New Node"
+* simulated = FALSE
+* type = 
+    * if simulated: "ContinuousInterval"
+    * if not simulated: "Boolean"
+* states =
+    * if Boolean or Labelled: ("False", "True")
+    * if Ranked: ("Low", "Medium", "High")
+    * if DiscreteReal: ("0.0", "1.0")
 
-## 6.4 Creating Scenarios and Entering Observation
+Once a new node is created, depending on the type and number of states, other fields are given sensible default values too. These fields are distr_type (table type), probabilities or expressions. To specify values in these fields, you need to use the relevant set functions (explained in [Section](#4-class-methods) and shown later in this section). The default values for these fields are:
 
-...
+* distr_type = 
+    * if simulated: "Expression"
+    * if not simulated: "Manual"
+* probabilities = 
+    * if distr_type is Manual: discrete uniform distribution, each state has the probability of (1/number of states)
+* expressions = 
+    * if distr_type is Expression: "Normal(0,1000000)"
 
-# 7. Modifying a Model in R
+Look at the following new node creation examples:
 
-Once an R model is created, either by parsing a .cmpx file or defining it in R using RAgena objects, it is possible to modify and update parts of this model using the RAgena methods. 
+```r
+node_one <- Node$new(id = "node_one")
+```
 
-# 8. Exporting a Model to .cmpx or .json
+```r
+node_two <- Node$new(id = "node_two", name = "Second Node")
+```
 
-Once an R model is defined fully and it is ready
+```r
+node_three <- Node$new(id = "node_three", type = "Ranked")
+```
 
-# 9. Creating Batch Cases for a Model in R
+```r
+node_four <- Node$new(id = "node_four", type = "Ranked", states = c("Very low", "Low", "Medium", "High", "Very high"))
+```
 
-create_batch_cases
+Looking up some example values in the fields that define these nodes:
 
-# 10. RAgena Use Case Examples
+* node_one$id = "node_one"
+* node_one$name = "node_one"
+* node_one$description = "New Node"
+* node_one$type = "Boolean"
+* node_one$states = ("False", "True")
+* node_two$id = "node_two"
+* node_two$name = "Second Node"
+* node_three$type = "Ranked"
+* node_three$states =  ("Low", "Medium", "High")
+* node_four$states =  ("Very low", "Low", "Medium", "High", "Very high")
+* node_one$distr_type = "Manual"
+* node_one$probabilities = (0.5, 0.5)
+* node_three$probabilities = (0.3333, 0.3333, 0.3333)
+* node_four$probabilities = (0.2, 0.2, 0.2, 0.2, 0.2)
+
+## 6.2 Modifying Nodes
+
+To update node information, some fields can be simply overwritten with direct access to the field if it does not affect other fields. These fields are node name, description, or state names (without changing the number of states). For example: 
+
+```r
+node_one$states <- c("Negative","Positive")
+```
+
+```r
+node_one$description <- "first node we have created"
+```
+
+Other fields can be specified with the relevant set functions. To set probability values for a node with a manual table (distr_type), you can use `setProbabilities()` function:
+
+```r
+node_one$setProbabilities(list(0.2,0.8))
+```
+
+Note that the `setProbabilities()` function takes a `list` as input, even when the node has no parents and its NPT has only one row of probabilities. If the node has parents, the NPT will have multiple rows which should be in the input list.
+
+Assume that `node_one` and `node_two` are the parents of `node_three` (how to add parent nodes is illustrated later in this section). Now assume that you want `node_three` to have the following NPT:
+
+<table>
+<tbody>
+  <tr>
+    <td><strong>node_one</strong></td>
+    <td colspan="2"><strong>Negative</strong></td>
+    <td colspan="2"><strong>Positive</strong></td>
+  </tr>
+  <tr>
+    <td><strong>node_two</strong></td>
+    <td><strong>False</strong></td>
+    <td><strong>True</strong></td>
+    <td><strong>False</strong></td>
+    <td><strong>True</strong></td>
+  </tr>
+  <tr>
+    <td>Low</td>
+    <td>0.1</td>
+    <td>0.2</td>
+    <td>0.3</td>
+    <td>0.4</td>
+  </tr>
+  <tr>
+    <td>Medium</td>
+    <td>0.4</td>
+    <td>0.45</td>
+    <td>0.6</td>
+    <td>0.55</td>
+  </tr>
+  <tr>
+    <td>High</td>
+    <td>0.5</td>
+    <td>0.35</td>
+    <td>0.1</td>
+    <td>0.05</td>
+  </tr>
+</tbody>
+</table>
+
+There are two ways to order the values in this table for the `setProbabilities()` function, using the boolean `by_rows` parameter. If you want to enter the values following the rows in AgenaRisk NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = TRUE` where each element of the list is a row of the AgenaRisk NPT:
+
+```r
+node_three$setProbabilities(list(c(0.1, 0.2, 0.3, 0.4), c(0.4, 0.45, 0.6, 0.55), c(0.5, 0.35, 0.1, 0.05)), by_rows = TRUE)
+```
+
+If, instead, you want to define the NPT with the probabilities that add up to 1 (conditioned on the each possible combination of parent states), you can set `by_rows = FALSE` as the following example:
+
+```r
+node_three$setProbabilities(list(c(0.1, 0.4, 0.5), c(0.2, 0.45, 0.35), c(0.3, 0.6, 0.1), c(0.4, 0.55, 0.05)), by_rows = FALSE)
+```
+
+Similarly, you can use `setExpressions()` function to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
+
+```r
+example_node$setExpressions("TNormal(4,1,-10,10)")
+```
+
+Or if the node has parents and the expression is partitioned on the parents:
+
+```r
+example_node$setExpressions(c("Normal(90,10)", "Normal(110,15)", "Normal(120,30)"), partition_parents = "parent_node")
+```
+
+Here you can see the expression is an array with three elements and the second parameter (`partition_parameters`) contains the ids of the parent nodes. Expression input has three elements based on the number of states of the parent node(s) on which the expression is partitioned.
+
+## 6.3 Adding and Removing Parent Nodes
+
+To add parents to a node, you can use `addParent()` function. For example:
+
+```r
+node_three$addParent(node_one)
+```
+
+This adds `node_one` to the parents list of `node_three`, and resizes the NPT of `node_three` (and resets the values to a discrete uniform distribution).
+
+To remove an already existing parent, you can use:
+
+```r
+node_three$removeParent(node_one)
+```
+
+This removes `node_one` from the parents list of `node_three`, and resizes the NPT of `node_three` (and resets the values to a discrete uniform distribution).
+
+Below we follow the steps from creation of node_three to the parent modifications and see how the NPT of node_three changes after each step.
+
+* Creating node_tree with only type specified:
+
+```r
+node_three <- Node$new(id = "node_three", type = "Ranked")
+```
+* node_three$getParents()
+
+```r
+NULL
+```
+
+* node_three$probabilities
+
+```r
+[[1]]
+[1] 0.3333333
+
+[[2]]
+[1] 0.3333333
+
+[[3]]
+[1] 0.3333333
+
+#discrete uniform with three states (default of Ranked node)
+```
+
+* Changing the probabilities:
+
+```r
+node_three$setProbabilities(list(0.7, 0.2, 0.1))
+```
+
+* node_three$probabilities
+
+```r
+[[1]]
+[1] 0.7
+
+[[2]]
+[1] 0.2
+
+[[3]]
+[1] 0.1
+```
+
+* Adding a parent:
+
+```r
+node_three$addParent(node_one)
+```
+
+* node_three$getParents()
+
+```r
+[1] "node_one"
+
+# node_one has been added to the parents list of node_three
+```
+
+* node_three$probabilities
+
+```r
+[[1]]
+[1] 0.3333333 0.3333333
+
+[[2]]
+[1] 0.3333333 0.3333333
+
+[[3]]
+[1] 0.3333333 0.3333333
+
+#  NPT of node_three has been resized based on the number of parent node_one states
+# NPT values for node_three are reset to discrete uniform
+```
+
+* Adding another parent:
+
+```r
+node_three$addParent(node_two)
+```
+
+* node_three$getParents()
+
+```r
+[1] "node_one" "node_two"
+
+# node_two has been added to the parents list of node_three
+```
+
+* node_three$probabilities
+
+```r
+[[1]]
+[1] 0.3333333 0.3333333 0.3333333 0.3333333
+
+[[2]]
+[1] 0.3333333 0.3333333 0.3333333 0.3333333
+
+[[3]]
+[1] 0.3333333 0.3333333 0.3333333 0.3333333
+
+#  NPT of node_three has been resized based on the number of parent node_one and node_two states
+# NPT values for node_three are reset to discrete uniform
+```
+
+## 6.4 Creating and Modifying Networks
+
+BN Models contain networks, at least one or optionally multiple. If there are multiple networks in a model, they can be linked to each other with the use of input and output nodes. A `Network` object in R represents a network in a BN model. To create a new `Network` object, you need to specify its id (mandatory parameter), and you can also fill in the optional parameters:
+
+```r
+Network$new(id, name, description, nodes)
+
+# id parameter is mandatory
+# the rest is optional
+```
+
+Here clearly `nodes` field is the most important information for a network but you do not need to specify these on creation. You can choose to create an empty network and fill it in with the nodes afterwards with the use of `addNode()` function. Alternatively, if all (or some) of the nodes you will have in the network are already defined, you can pass them to the new `Network` object on creation.
+
+Below is an example of network creation with the nodes added later:
+
+```r
+network_one <- Network$new(id = "network_one")
+
+network_one$addNode(node_three)
+network_one$addNode(node_one)
+network_one$addNode(node_two)
+```
+
+Notice that when node_three is added to the network, its parents are not automatically included. So if a node has parents, you need to separately add them to the network, so that later on your model will not have discrepancies.
+
+The order in which nodes are added to a network is not important as long as all parent-child nodes are eventually in the network.
+
+Alternatively, you can create a new network with its nodes:
+
+```r
+network_two <- Network$new(id = "network_two", nodes = c(node_one, node_two, node_three))
+```
+
+Or you can create the network with some nodes and add more nodes later on:
+
+```r
+network_three <- Network$new(id = "network_three", nodes = c(node_one, node_three))
+
+network_three$addNode(node_two)
+```
+
+To remove a node from a network, you can use `removeNode()` function. Again keep in mind that removing a node does not automatically remove all of its parents from the network. For example,
+
+```r
+network_three$removeNode(node_three)
+```
+
+## 6.5 Creating and Modifying the Model
+
+BN models consist of networks, the links between networks, and datasets (scenarios). Only the networks information is mandatory to create a new `Model` object in R. The other fields can be filled in afterwards. The new model creation function is:
+
+```r
+Model$new(id, networks, dataSets, networkLinks)
+
+# networks parameter is mandatory
+# the rest is optional
+```
+
+For example, you can create a model with the networks defined above:
+
+```r
+example_model <- Model$new(networks = list(network_one))
+```
+
+Note that even when there is only one network in the model, the input has to be a list. Networks in a model can be modified with `addNetwork()` and `removeNetwork()` functions:
+
+```r
+example_model$addNetwork(network_two)
+```
+
+```r
+example_model$removeNetwork(network_two)
+```
+
+Network links between networks of the model can be added with the `addNetworkLink()` function. For example:
+
+```r
+example_model$addNetworkLink(outNetwork = network_one, outNode = node_three, inNetwork = network_two, inNode = node_three, linkType = "Marginals")
+```
+
+When a new model is created, it comes with a single scenario (dataSet element) by default. See next section to see how to add observations to this scenario or add new scenarios.
+
+## 6.6 Creating Scenarios and Entering Observation
+
+To enter observations to a Model (which by default has one single scenario), use the `enter_observation()` function. You need to specify the node (and the network it belongs to) and give the value (one of the states if it's a discrete node, a sensible numerical value if it's a continuous node):
+
+```r
+example_model$enter_observation(node = node_three, network = network_one, value = "High")
+```
+
+Note that this function did not specify any scenario. If this is the case, observation is always entered to the first (default) scenario.
+
+You may choose to add more scenarios to the model with the `create_scenario()` function:
+
+```r
+example_model$create_scenario("Scenario 2")
+```
+
+Once added, you can enter observation to the new scenario if you specify the `scenario` parameter in the `enter_observation()` function:
+
+```r
+example_model$enter_observation(scenario = "Scenario 2", node = node_three, network = network_one, value = "Medium")
+```
+
+## 6.7. Exporting a Model to .cmpx or .json
+
+Once an R model is defined fully and it is ready, you can export it to a .cpmx or a .json file. The function to create these files convert the information to the correct format for AgenaRisk to understand. You can use either of the functions:
+
+```r
+example_model$to_json()
+```
+
+or 
+
+```r
+example_model$to_cmpx()
+```
+
+If left blank, these functions will create a file named after the `Model$id` with the correct extension. You may choose to name the file at the creation:
+
+```r
+example_model$to_json("custom_file_name")
+```
+
+# 7. Creating Batch Cases for a Model in R
+
+RAgena environment allows creation of batch cases based on a single model and multiple observation sets. 
+
+
+
+# 8. RAgena Use Case Examples
 
 examples of model creation from scratch with code pieces here, for different models
+
+-diet exercise model
