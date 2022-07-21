@@ -5,11 +5,9 @@
 * [Structure of RAgena Classes](#3-structure-of-ragena-classes)
 * [Class Methods](#4-class-methods)
 * [Importing a Model from .cmpx](#5-importing-a-model-from-cmpx)
-* [Creating a Model in R](#6-creating-a-model-in-r)
-* [Modifying a Model in R](#7-modifying-a-model-in-r)
-* [Exporting a Model to .cmpx or .json](#8-exporting-a-model-to-cmpx-or-json)
-* [Creating Batch Cases for a Model in R](#9-creating-batch-cases-for-a-model-in-r)
-* [RAgena Use Case Examples](#10-ragena-use-case-examples)
+* [Creating and Modifying a Model in R](#6-creating-and-modifying-a-model-in-r)
+* [Creating Batch Cases for a Model in R](#7-creating-batch-cases-for-a-model-in-r)
+* [RAgena Use Case Examples](#8-ragena-use-case-examples)
 
 # 1. Description
 
@@ -288,7 +286,15 @@ This is the method to add links to a model between its networks. These links sta
 
 It is possible to add multiple scenarios to a model. These scenarios are new `DataSet` objects added to the `dataSets` field of a model. Initially these scenarios have no observations and are only defined by their `id`s. The scenarios are populated with the `enter_observation()` function.
 
-### 4.3.6 `enter_observation(scenario = NULL, node, network, value)`
+### 4.3.6 `remove_scenario(oldScenario)`
+
+A method to remove an existing scenario from the model. Input parameter `oldScenario` is the string which is the `id` of a scenario (`dataSet` object).
+
+### 4.3.7 `get_scenarios()`
+
+A method to list the `id`s of all existing scenarios in a model.
+
+### 4.3.8 `enter_observation(scenario = NULL, node, network, value)`
 
 A method to enter observation to a model. To enter the observation to a specific scenario, the scenario id must be given as the input parameter `scenario`. If `scenario` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra scenarios created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this scenario (mimicking the behaviour of entering observation in AgenaRisk Desktop).
 
@@ -297,15 +303,15 @@ The observation is defined with the mandatory input parameters:
 * `network` = `Network$id` of the network the observed node belongs to
 * `value` = the value or state of the observation for the observed node
 
-### 4.3.7 `clear_all_observations()`
+### 4.3.9 `clear_all_observations()`
 
 A method to clear all observations defined in a model. This function removes all observations from all scenarios.
 
-### 4.3.8 `to_cmpx(filename = NULL)`
+### 4.3.10 `to_cmpx(filename = NULL)`
 
 A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .cmpx file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
-### 4.3.9 `to_json(filename = NULL)`
+### 4.3.11 `to_json(filename = NULL)`
 
 A method to export the `Model` to a .json file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .json file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
@@ -319,7 +325,7 @@ This is the cmpx parser function to import a .cmpx file and create R objects bas
 
 ### 4.4.2 `create_batch_cases(inputModel, inputData)`
 
-This function takes an R `Model` object (`inputModel`) and an input CSV file (`inputData`) with observations defined in the correct format and creates a batch of .json files for each row in the input dataset. To see its use and the correct format of the CSV file for a model's data, see [Section 9](#9-creating-batch-cases-for-a-model-in-r).
+This function takes an R `Model` object (`inputModel`) and an input CSV file (`inputData`) with observations defined in the correct format and creates a batch of scenarios for each row in the input dataset. and generates a .json file. To see its use and the correct format of the CSV file for a model's data, see [Section 7](#7-creating-batch-cases-for-a-model-in-r).
 
 # 5. Importing a Model from .cmpx
 
