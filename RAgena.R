@@ -395,6 +395,9 @@ Network <- setRefClass("Network",
                              .self$nodes <<- nodes
                            }
                          },
+                         plot = function(){
+                           plot_network(.self)
+                         },
                          getNodes = function() {
                            nodeList <- c()
                            if (length(.self$nodes)>0) {
@@ -1039,4 +1042,45 @@ create_batch_cases <- function(inputModel, inputData){
     inputModel$remove_scenario(temp_id)
   }
   
+}
+
+
+get_node_by_ID <- function(node_id, inputNetwork) {
+  nodes <- inputNetwork$nodes
+  node_ids <- inputNetwork$getNodes()
+  
+  for (i in seq_along(node_ids)) {
+    if (node_id == node_ids[[i]]) {
+      node <- nodes[[i]]
+    }
+  }
+  
+  return(node)
+}
+
+create_network_matrix <- function(inputNetwork) {
+  nodes <- inputNetwork$getNodes()
+  edge_matrix <- matrix(0, nrow = length(nodes), ncol = length(nodes),
+                        dimnames = list(nodes,nodes))
+
+  for (i in seq_along(nodes)) {
+    the_parents <- get_node_by_ID(nodes[i],inputNetwork)$getParents()
+    for (j in seq_along(nodes)) {
+      if (nodes[j] %in% the_parents) {
+        edge_matrix[j,i] <- 1
+      }
+    }
+  }
+  return(edge_matrix)
+}
+
+plot_network <- function(inputNetwork) {
+  
+  edge_matrix <- create_network_matrix(inputNetwork)
+  nodes <- inputNetwork$getNodes()
+  
+  edge_matrix_network <- new("graphAM", adjMat=edge_matrix, edgemode="directed")
+  edge_matrix_network <- Rgraphviz::layoutGraph(edge_matrix_network)
+
+  Rgraphviz::renderGraph(edge_matrix_network)
 }
