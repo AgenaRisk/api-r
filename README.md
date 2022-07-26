@@ -15,10 +15,21 @@ RAgena is an R environment for AgenaRisk. The environment allows users to read a
 
 # 2. Prerequisites
 
-RAgena requires `rjson` package installed.
+RAgena requires `rjson` and `Rgraphviz` packages installed.
+
+To install `rjson` from CRAN:
 
 ```r
 install.packages('rjson')
+```
+
+To install `Rgraphviz` from Bioconductor:
+
+```r
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("Rgraphviz")
 ```
 
 # 3. Structure of RAgena Classes
