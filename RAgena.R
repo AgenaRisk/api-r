@@ -625,11 +625,48 @@ Model <- setRefClass("Model",
                            }
                          }
                        },
-                       clear_all_observations = function(){
-                         remove_all_observations(.self)
+                       remove_observation = function(scenario=NULL, node, network){
+                         if(is.null(scenario)){
+                           
+                           for (i in seq_along(dataSets[[1]]$observations)){
+                             if(node == dataSets[[1]]$observations[[i]]$node && network == dataSets[[1]]$observations[[i]]$network){
+                               dataSets[[1]]$observations <<- dataSets[[1]]$observations[-i]
+                               break
+                             }
+                           }
+                         } else {
+                           for (i in seq_along(dataSets)){
+                             if(scenario == dataSets[[i]]$id){
+                               for (j in seq_along(dataSets[[i]]$observations)){
+                                 if(node == dataSets[[i]]$observations[[j]]$node && network == dataSets[[i]]$observations[[j]]$network){
+                                   dataSets[[i]]$observations <<- dataSets[[i]]$observations[-j]
+                                   break
+                                 }
+                               }
+                               }}
+                         }
                        },
-                       to_cmpx = function(filename=NULL){
-                         json_object <- generate_cmpx(.self)
+                       clear_scenario_observations = function(scenario){
+                         for (i in seq_along(.self$dataSets)){
+                           if(scenario == .self$dataSets[[i]]$id){
+                             dataSets[[i]]$observations <<- list()
+                           }}
+                       },
+                       clear_all_observations = function(){
+                         
+                         for (i in seq_along(.self$dataSets)){
+                           dataSets[[i]]$observations <<- list()
+                         }
+                         # 
+                         # remove_all_observations(.self)
+                       },
+                       to_cmpx = function(filename=NULL, settings=NULL){
+                         if(is.null(settings)){
+                           json_object <- generate_cmpx(.self)
+                         } else {
+                           json_object <- generate_cmpx(.self, settings = settings)
+                         }
+                         
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".cmpx")
                          } else {
@@ -637,8 +674,13 @@ Model <- setRefClass("Model",
                          }
                          write(json_object,file_name)
                        },
-                       to_json = function(filename=NULL){
-                         json_object <- generate_cmpx(.self)
+                       to_json = function(filename=NULL, settings=NULL){
+                         if(is.null(settings)){
+                           json_object <- generate_cmpx(.self)
+                         } else {
+                           json_object <- generate_cmpx(.self, settings = settings)
+                         }
+                         
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".json")
                          } else {
@@ -647,6 +689,14 @@ Model <- setRefClass("Model",
                          write(json_object,file_name)
                        }
                      )) 
+
+remove_all_observations <- function(inputModel){
+  
+  for (i in seq_along(inputModel$dataSets)){
+    inputModel$dataSets[[i]]$observations <- list()
+  }
+}
+
 
 #function to read input CMPX file to create Model and its Networks and their Nodes
 from_cmpx <- function(modelPath){
@@ -760,7 +810,20 @@ from_cmpx <- function(modelPath){
 
 
 
-generate_cmpx <- function(inputModel) {
+generate_cmpx <- function(inputModel, settings=NULL) {
+  
+  if(is.null(settings)){
+    settings_list <- list(parameterLearningLogging = FALSE,
+                          discreteTails = FALSE,
+                          sampleSizeRanked = 5,
+                          convergence = 0.001,
+                          simulationLogging = FALSE,
+                          iterations = 50,
+                          tolerance = 1)
+  } else {
+    settings_list <- settings
+  }
+  
 
   #creating empty lists and sublists with correct length to be filled in later
   networks_list <- vector(mode = "list", length = length(inputModel$networks))
@@ -921,13 +984,6 @@ generate_cmpx <- function(inputModel) {
                                links = links_list[[i]])
   }
   
-  settings_list <- list(parameterLearningLogging = FALSE,
-                        discreteTails = FALSE,
-                        sampleSizeRanked = 5,
-                        convergence = 0.001,
-                        simulationLogging = FALSE,
-                        iterations = 50,
-                        tolerance = 1)
 
   if(length(inputModel$networkLinks) == 0){
     networklinks_list <- list()
@@ -1000,12 +1056,7 @@ generate_cmpx <- function(inputModel) {
 
 
 
-remove_all_observations <- function(inputModel){
-  
-  for (i in seq_along(inputModel$dataSets)){
-    inputModel$dataSets[[i]]$observations <- list()
-  }
-}
+
 
 create_batch_cases <- function(inputModel, inputData){
   
@@ -1018,11 +1069,6 @@ create_batch_cases <- function(inputModel, inputData){
     obs_networks <- append(obs_networks,gsub(".*\\.", "", nm))
   }
 
-  # for (i in seq_along(inputTable)){
-  #   temp_id <- as.character(as.character(inputTable[i,][[1]]))
-  #   inputModel$create_scenario(id = temp_id)
-  # }
-  
   for (i in seq_along(inputTable)){
     temp_id <- as.character(as.character(inputTable[i,][[1]]))
     inputModel$create_scenario(id = temp_id)
