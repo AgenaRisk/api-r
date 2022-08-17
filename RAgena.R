@@ -572,12 +572,37 @@ Model <- setRefClass("Model",
                            cat("This scenario is not in the model")
                          }
                        },
-                       enter_observation = function(scenario=NULL, node, network, value){
+                       enter_observation = function(scenario=NULL, node, network, value, variable_input = FALSE){
                          if(is.null(scenario)){
-                           new_obs <- list(node=node,
-                                           network = network,
-                                           entries = list())
-                           new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           if(!variable_input){
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             entries = list())
+                             new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           } else {
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             constantName = value,
+                                             entries = list())
+                             
+                             for (i in seq_along(.self$networks)){
+                               if(.self$networks[[i]]$id == network) {
+                                 this_network <- .self$networks[[i]]
+                                 for (j in seq_along(this_network$nodes)) {
+                                   if (this_network$nodes[[j]]$id == node) {
+                                     this_node <- this_network$nodes[[j]]
+                                     for (k in seq_along(this_node$variables)) {
+                                       if (this_node$variables[[k]][[1]] == value) {
+                                         obs_value <- this_node$variables[[k]][[2]]
+                                       }
+                                     }
+                                   }
+                                 }
+                               }
+                             }
+                             new_obs$entries[[1]] <- list(weight = 1, value = obs_value)
+                           }
+                           
                            
                            exist_check <- 0
                            if(length(dataSets[[1]]$observations)>0){
@@ -596,10 +621,35 @@ Model <- setRefClass("Model",
                            }
 
                          } else {
-                           new_obs <- list(node=node,
-                                           network = network,
-                                           entries = list())
-                           new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           
+                           if(!variable_input){
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             entries = list())
+                             new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           } else {
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             constantName = value,
+                                             entries = list())
+                             
+                             for (i in seq_along(.self$networks)){
+                               if(.self$networks[[i]]$id == network) {
+                                 this_network <- .self$networks[[i]]
+                                 for (j in seq_along(this_network$nodes)) {
+                                   if (this_network$nodes[[j]]$id == node) {
+                                     this_node <- this_network$nodes[[j]]
+                                     for (k in seq_along(this_node$variables)) {
+                                       if (this_node$variables[[k]][[1]] == value) {
+                                         obs_value <- this_node$variables[[k]][[2]]
+                                       }
+                                     }
+                                   }
+                                 }
+                               }
+                             }
+                             new_obs$entries[[1]] <- list(weight = 1, value = obs_value)
+                           }
                            
                            
                            for (i in seq_along(dataSets)){
