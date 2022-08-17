@@ -1130,3 +1130,20 @@ plot_network <- function(inputNetwork) {
 
   Rgraphviz::renderGraph(edge_matrix_network)
 }
+
+colname_list_generator <- function(inputModel){
+  colname_list <- c("Case")
+  for (nt in inputModel$networks){
+    for (nd in nt$nodes){
+      colname_list <- append(colname_list,paste0(nd$id,".",nt$id))
+    }
+  }
+  return(colname_list)
+}
+
+create_csv_template <- function(inputModel){
+  colname_list <- colname_list_generator(inputModel)
+  filename <- paste0(inputModel$id,"_DataSet.csv")
+  
+  write.table(t(colname_list),sep = ",", file = filename, row.names = FALSE, col.names = FALSE)
+}
