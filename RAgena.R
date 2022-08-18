@@ -572,13 +572,20 @@ Model <- setRefClass("Model",
                            cat("This scenario is not in the model")
                          }
                        },
-                       enter_observation = function(scenario=NULL, node, network, value, variable_input = FALSE){
+                       enter_observation = function(scenario=NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE){
                          if(is.null(scenario)){
                            if(!variable_input){
                              new_obs <- list(node=node,
                                              network = network,
                                              entries = list())
-                             new_obs$entries[[1]] <- list(weight = 1, value = value)
+                             if(!soft_evidence) {
+                               new_obs$entries[[1]] <- list(weight = 1, value = value)
+                             } else {
+                               obs_num <- length(value)/2
+                               for (i in 1:obs_num){
+                                 new_obs$entries[[i]] <- list(weight = as.numeric(value[2*i]), value = value[2*i-1])
+                               }
+                             }
                            } else {
                              new_obs <- list(node=node,
                                              network = network,
@@ -626,8 +633,14 @@ Model <- setRefClass("Model",
                              new_obs <- list(node=node,
                                              network = network,
                                              entries = list())
-                             new_obs$entries[[1]] <- list(weight = 1, value = value)
-                           } else {
+                             if(!soft_evidence) {
+                               new_obs$entries[[1]] <- list(weight = 1, value = value)
+                             } else {
+                               obs_num <- length(value)/2
+                               for (i in 1:obs_num){
+                                 new_obs$entries[[i]] <- list(weight = as.numeric(value[2*i]), value = value[2*i-1])
+                               }
+                             }                           } else {
                              new_obs <- list(node=node,
                                              network = network,
                                              constantName = value,
@@ -707,8 +720,6 @@ Model <- setRefClass("Model",
                          for (i in seq_along(.self$dataSets)){
                            dataSets[[i]]$observations <<- list()
                          }
-                         # 
-                         # remove_all_observations(.self)
                        },
                        to_cmpx = function(filename=NULL, settings=NULL){
                          if(is.null(settings)){
@@ -739,14 +750,6 @@ Model <- setRefClass("Model",
                          write(json_object,file_name)
                        }
                      )) 
-
-remove_all_observations <- function(inputModel){
-  
-  for (i in seq_along(inputModel$dataSets)){
-    inputModel$dataSets[[i]]$observations <- list()
-  }
-}
-
 
 #function to read input CMPX file to create Model and its Networks and their Nodes
 from_cmpx <- function(modelPath){
