@@ -532,15 +532,124 @@ Model <- setRefClass("Model",
                            cat("This network is not in the model")
                          }
                        },
-                       addNetworkLink = function(outNetwork,outNode,inNetwork,inNode,linkType){
-                         #check if both nodes are the same type and either of them is simulated
-                         #check if both nodes are the same type and neither is simulated and both have the same number of states
-                         #check sourcenode is not numeric interval or discrete real and target node is simulated
+                       add_network_link = function(source_network,source_node,target_network,target_node,link_type,pass_state=NULL){
                          
-                         #type in c("Marginals", "Mean", "Median", "Variance", "StandardDeviation", "LowerPercentile", "UpperPercentile", "State")
-                         #if type state, passState string must appear
+                         for (i in seq_along(.self$networks)) {
+                           if (source_network == .self$networks[[i]]$id) {
+                             out_network <- .self$networks[[i]]
+                             for (j in seq_along(out_network$nodes)) {
+                               if (source_node == out_network$nodes[[j]]$id) {
+                                 out_node <- out_network$nodes[[j]]
+                               }
+                             }
+                           }
+                         }
                          
-                         #input Node cannot be a child node
+                         for (i in seq_along(.self$networks)) {
+                           if (target_network == .self$networks[[i]]$id) {
+                             in_network <- .self$networks[[i]]
+                             for (j in seq_along(in_network$nodes)) {
+                               if (target_node == in_network$nodes[[j]]$id) {
+                                 in_node <- in_network$nodes[[j]]
+                               }
+                             }
+                           }
+                         }
+                         
+                         targets <- c()
+                         if(length(.self$networkLinks)>0) {
+                           for (i in seq_along(.self$networkLinks)) {
+                             targets <- append(targets, .self$networkLinks[[i]]$targetNode)
+                           }
+                         }
+                         
+                         if (length(in_node$parents)>0) {
+                           cat("Target node is a child node in its network, it cannot be a target node")
+                         } else {
+                           if (!is.null(targets) && target_node %in% targets) {
+                             cat("The required target node is already an target for another link")
+                           } else {
+                             num_list <- c("ContinuousInterval", "IntegerInterval", "DiscreteReal")
+                             num_intv_list <- c("ContinuousInterval", "IntegerInterval")
+                             val_check <- 0
+                             
+                             if (link_type == "Marginals") {
+                               if (!out_node$simulated && !in_node$simulated) {
+                                 val_check <- val_check
+                               } else {
+                                 if (out_node$type %in% num_list && in_node$type %in% num_list) {
+                                   val_check <- val_check
+                                 } else {
+                                   val_check <- val_check + 1
+                                 }
+                               }
+                             }
+                             
+                             if (link_type %in% c("Mean", "Median", "Variance", "StandardDeviation", 
+                                                  "LowerPercentile", "UpperPercentile")) {
+                               if (out_node$type %in% num_list && in_node$simulated){
+                                 val_check <- val_check
+                               } else {
+                                 val_check <- val_check + 1
+                               }
+                             }
+                             
+                             if (link_type == "State") {
+                               if(!(out_node$type %in% num_intv_list) && in_node$simulated) {
+                                 val_check <- val_check
+                               } else {
+                                 val_check <- val_check + 1
+                               }
+                             }
+                             
+                             if(val_check == 0){
+                               if (link_type == "State"){
+                                 if (is.null(pass_state)){
+                                   cat("\nPlease enter the source node state to be passed on")
+                                 } else {
+                                   newLink <- list(sourceNode = source_node,
+                                                   sourceNetwork = source_network,
+                                                   targetNode = target_node,
+                                                   targetNetwork = target_network,
+                                                   passState = pass_state,
+                                                   type = link_type) 
+                                 }
+                               } else {
+                                 newLink <- list(sourceNode = source_node,
+                                                 sourceNetwork = source_network,
+                                                 targetNode = target_node,
+                                                 targetNetwork = target_network,
+                                                 type = link_type)
+                               }
+                               
+                               cur_length <- length(.self$networkLinks)
+                               networkLinks[[cur_length+1]] <<- newLink
+                             } else {
+                               cat("\nThe link between source node and target node is not valid")
+                             }
+                           }
+                           }
+                       },
+                       remove_network_link = function(source_network,source_node,target_network,target_node){
+                         
+                         if(length(.self$networkLinks)>0){
+                           for (i in seq_along(.self$networkLinks)){
+                             if(.self$networkLinks[[i]]$sourceNetwork == source_network &&
+                                .self$networkLinks[[i]]$sourceNode == source_node &&
+                                .self$networkLinks[[i]]$targetNetwork == target_network &&
+                                .self$networkLinks[[i]]$targetNode == target_node) {
+                               networkLinks <<- networkLinks[-i]
+                               break
+                             } else {
+                               cat("This network link is not in the model")
+                             }
+                           } 
+                         } else {
+                           cat("This model does not have any network links")
+                         }
+                       },
+                       remove_all_network_links = function(){
+                         networkLinks <<- list()
                        },
                        create_scenario = function(id){
                          dataSets <<- append(dataSets,Dataset$new(id=id, observations=NULL))
@@ -572,12 +681,44 @@ Model <- setRefClass("Model",
                            cat("This scenario is not in the model")
                          }
                        },
-                       enter_observation = function(scenario=NULL, node, network, value){
+                       enter_observation = function(scenario=NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE){
                          if(is.null(scenario)){
-                           new_obs <- list(node=node,
-                                           network = network,
-                                           entries = list())
-                           new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           if(!variable_input){
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             entries = list())
+                             if(!soft_evidence) {
+                               new_obs$entries[[1]] <- list(weight = 1, value = value)
+                             } else {
+                               obs_num <- length(value)/2
+                               for (i in 1:obs_num){
+                                 new_obs$entries[[i]] <- list(weight = as.numeric(value[2*i]), value = value[2*i-1])
+                               }
+                             }
+                           } else {
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             constantName = value,
+                                             entries = list())
+                             
+                             for (i in seq_along(.self$networks)){
+                               if(.self$networks[[i]]$id == network) {
+                                 this_network <- .self$networks[[i]]
+                                 for (j in seq_along(this_network$nodes)) {
+                                   if (this_network$nodes[[j]]$id == node) {
+                                     this_node <- this_network$nodes[[j]]
+                                     for (k in seq_along(this_node$variables)) {
+                                       if (this_node$variables[[k]][[1]] == value) {
+                                         obs_value <- this_node$variables[[k]][[2]]
+                                       }
+                                     }
+                                   }
+                                 }
+                               }
+                             }
+                             new_obs$entries[[1]] <- list(weight = 1, value = obs_value)
+                           }
+                           
                            
                            exist_check <- 0
                            if(length(dataSets[[1]]$observations)>0){
@@ -596,10 +737,41 @@ Model <- setRefClass("Model",
                            }
 
                          } else {
-                           new_obs <- list(node=node,
-                                           network = network,
-                                           entries = list())
-                           new_obs$entries[[1]] <- list(weight = 1, value = value)
+                           
+                           if(!variable_input){
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             entries = list())
+                             if(!soft_evidence) {
+                               new_obs$entries[[1]] <- list(weight = 1, value = value)
+                             } else {
+                               obs_num <- length(value)/2
+                               for (i in 1:obs_num){
+                                 new_obs$entries[[i]] <- list(weight = as.numeric(value[2*i]), value = value[2*i-1])
+                               }
+                             }                           } else {
+                             new_obs <- list(node=node,
+                                             network = network,
+                                             constantName = value,
+                                             entries = list())
+                             
+                             for (i in seq_along(.self$networks)){
+                               if(.self$networks[[i]]$id == network) {
+                                 this_network <- .self$networks[[i]]
+                                 for (j in seq_along(this_network$nodes)) {
+                                   if (this_network$nodes[[j]]$id == node) {
+                                     this_node <- this_network$nodes[[j]]
+                                     for (k in seq_along(this_node$variables)) {
+                                       if (this_node$variables[[k]][[1]] == value) {
+                                         obs_value <- this_node$variables[[k]][[2]]
+                                       }
+                                     }
+                                   }
+                                 }
+                               }
+                             }
+                             new_obs$entries[[1]] <- list(weight = 1, value = obs_value)
+                           }
                            
                            
                            for (i in seq_along(dataSets)){
@@ -657,8 +829,6 @@ Model <- setRefClass("Model",
                          for (i in seq_along(.self$dataSets)){
                            dataSets[[i]]$observations <<- list()
                          }
-                         # 
-                         # remove_all_observations(.self)
                        },
                        to_cmpx = function(filename=NULL, settings=NULL){
                          if(is.null(settings)){
@@ -689,14 +859,6 @@ Model <- setRefClass("Model",
                          write(json_object,file_name)
                        }
                      )) 
-
-remove_all_observations <- function(inputModel){
-  
-  for (i in seq_along(inputModel$dataSets)){
-    inputModel$dataSets[[i]]$observations <- list()
-  }
-}
-
 
 #function to read input CMPX file to create Model and its Networks and their Nodes
 from_cmpx <- function(modelPath){
