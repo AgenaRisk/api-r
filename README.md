@@ -181,13 +181,13 @@ To see how to create these links, see `addNetworkLink()` function later in this 
 The `Node`, `Network`, and `Model` objects have their own respective methods to help their definition and manipulate their fields. The R class methods are used with the `$` sign following an instance of the class. For example,
 
 ```r
-example_node$addParent(exampleParentNode)
+example_node$add_parent(exampleParentNode)
 ```
 
 or
 
 ```r
-example_network$removeNode(exampleNode)
+example_network$remove_node(exampleNode)
 ```
 
 or
@@ -214,56 +214,60 @@ Because changing the name or description of a `Node` does not cause any compatib
 
 These are the methods `Node` objects can call for various purposes with their input parameters shown in parantheses:
 
-### 4.1.1 `addParent(newParent)`
+### 4.1.1 `add_parent(newParent)`
 
 The method to add a new parent to a node. Equivalent of adding an arc between two nodes on AgenaRisk Desktop. The input parameter `newParent` is another `Node` object. If `newParent` is already a parent for the node, the function does not update the `parents` field of the node.
 
 When a new parent is added to a node, its NPT values and expressions are reset/resized accordingly. 
 
-There is also a method called `addParent_byID(newParentID, varList)`, however, this is only used in the cmpx parser. To add a new parent to a `Node`, it is recommended to use `addParent()` function with a `Node` object as the input.
+There is also a method called `addParent_byID(newParentID, varList)`, however, this is only used in the cmpx parser. To add a new parent to a `Node`, it is recommended to use `add_parent()` function with a `Node` object as the input.
 
-### 4.1.2 `removeParent(oldParent)` 
+### 4.1.2 `remove_parent(oldParent)` 
 
 The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on AgenaRisk Desktop. The input parameter `oldParent` is a `Node` object which has already been added to the `parents` field of the node.
 
 When an existing parent is removed from a node, its NPT values and expressions are reset/resized accordingly.
 
-### 4.1.3 `getParents()`
+### 4.1.3 `get_parents()`
 
 A method to list all the existing parent nodes of a `Node`.
 
-### 4.1.4 `setDistributionType(new_distr_type)`
+### 4.1.4 `set_distribution_type(new_distr_type)`
 
 A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned Expression (if the node has parent nodes)".
 
-### 4.1.5 `setProbabilities(new_probs, by_rows = TRUE)`
+### 4.1.5 `set_probabilities(new_probs, by_rows = TRUE)`
 
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Manual". `new_probs` is a list of numerical values, and the length of the input list depends on the number of the states of the node and of its parents.
 
 You can format the input list in two different orders. If the parameter `by_rows` is set to true, the method will read the input list to fill in the NPT row by row; if set to false, the method will read the input list to fill in the NPT column by columnn. This behaviour is illustrated with use case examples later in this document.
 
-### 4.1.6 `setExpressions(new_expr, partition_parents = NULL)`
+### 4.1.6 `set_expressions(new_expr, partition_parents = NULL)`
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Expression" or "Partitioned". If the table type is "Expression", `new_expr` is a single string and `partition_parents` is left NULL. If the table type is "Partitioned", `new_expr` is a list of expressions for each parent state, and `partition_parents` is a list of strings for each partitioned parent node's `id`.
 
-### 4.1.7 `setVariables(variables_list)`
+### 4.1.7 `set_variable(variable_name, variable_value)`
 
-A method to set variables (constants) for a node. Takes the `variables_list` input which is a list whose items are lists with fields named in the AgenaRisk variable (constant) definition format: `name = node_id, value = constant_value`. 
+A method to set variables (constants) for a node. Takes the `variable_name` and `variable_value` inputs which define a new variable (constant) for the node.
+
+### 4.1.8 `remove_variable(variable_name)`
+
+A method to remove one of the existing variables (constants) from a node, using the `variable_name`.
 
 ## 4.2 `Network` methods
 
 As described above, `Node` objects can be created and manipulated outside a network in the R environment. Once they are defined, they can be added to a `Network` object. Alternatively, a `Network` object can be created first and then its nodes can be specified. The R environment gives the user freedom, which is different from AgenaRisk Desktop where it is not possible to have a node completely outside any network. Once a `Network` object is created, with or without nodes, the following methods can be used to modify and manipulate the object.
 
-### 4.2.1 `addNode(newNode)`
+### 4.2.1 `add_node(newNode)`
 
 A method to add a new `Node` object to the `nodes` field of a `Network` object. The input `newNode` is a `Node` object and it is added to the network if it's not already in it.
 
 Note that adding a new `Node` to the network does not automatically add its parents to the network. If the node has parents already defined, you need to add all the parent `Node`s separately to the network, too.
 
-### 4.2.2 `removeNode(oldNode)`
+### 4.2.2 `remove_node(oldNode)`
 
 A method to remove an existing `Node` object from the network. Note that removing a Node from a network doesn't automatically remove it from its previous parent-child relationships in the network. You need to adjust such relationships separately on `Node` level.
 
-### 4.2.3 `getNodes()`
+### 4.2.3 `get_nodes()`
 
 A method to see `id`s of all the nodes in a network.
 
@@ -275,15 +279,15 @@ A method to plot the graphical structure of a BN network.
 
 A `Model` object consists of networks, network links, and datasets (and default settings). A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty scenario called "Scenario 1". Following methods can be used to modify `Model` objects: 
 
-### 4.3.1 `addNetwork(newNetwork)`
+### 4.3.1 `add_network(newNetwork)`
 
 A method to add a new `Network` object to the `networks` field of a `Model` object. The input `newNetwork` is a `Network` object and it is added to the model if it's not already in it.
 
-### 4.3.2 `removeNetwork(oldNetwork)`
+### 4.3.2 `remove_network(oldNetwork)`
 
 A method to remove an existing `Network` object from the model. Note that removing a Node from a network doesn't automatically remove its possible network links to other networks in the model. `networkLinks` field of a `Model` should be adjusted accordingly if needed.
 
-### 4.3.3 `getNetworks()`
+### 4.3.3 `get_networks()`
 
 A method to see `id`s of all the networks in a model.
 

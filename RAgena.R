@@ -159,7 +159,7 @@ Node <- setRefClass("Node",
                           }
                         }
                       },
-                      getParents = function() {
+                      get_parents = function() {
                         parList <- c()
                         if (length(.self$parents)>0) {
                           for (i in seq_along(.self$parents)) {
@@ -171,7 +171,7 @@ Node <- setRefClass("Node",
                         }
                         return(parList)
                       },
-                      addParent = function(newParent){
+                      add_parent = function(newParent){
                         'Adds a Node object as a new parent node to the current Node object and resets/resizes the NPT values and expressions of the Node as needed.
                         Parents list of a Node object is a list of other Node objects.
                         The input parameter of the function is a Node object variable. A good practice is to use Node ids as their variable names.'
@@ -193,7 +193,7 @@ Node <- setRefClass("Node",
                             }
                           }
                           
-                          .self$setProbabilities(updated_probs)
+                          .self$set_probabilities(updated_probs)
                           for (i in seq_along(.self$probabilities)) {
                             probabilities[[i]] <<- rep(1/length(.self$probabilities), temp_length)
                           }
@@ -205,19 +205,19 @@ Node <- setRefClass("Node",
                       },
                       addParent_byID = function(newParentID, varList) {
                         'This is a method to add parent Nodes by their ids for cmpx parser capabilities.
-                        To add parents to Node objects, please use $addParent(Node) method.'
+                        To add parents to Node objects, please use $add_parent(Node) method.'
                         
                         for (i in seq_along(varList)) {
                           if (newParentID == varList[[i]]$id) {
-                            .self$addParent(varList[[i]])
+                            .self$add_parent(varList[[i]])
                           }
                         }
                         #This does not do any smart adjustments to NPTs/expressions - only used in cmpx parser
                       },
-                      removeParent = function(oldParent) {
+                      remove_parent = function(oldParent) {
                         'Removes a Node object from parents of the current Node object and resets/resizes the NPT values and expressions of the Node as needed.
                         The input parameter of the function is a Node object variable. A good practice is to use Node ids as their variable names.'
-                        if (oldParent$id %in% .self$getParents()) {
+                        if (oldParent$id %in% .self$get_parents()) {
                           for (i in seq_along(.self$parents)) {
                             if (oldParent$id == .self$parents[[i]]$id) {
                               parents <<- .self$parents[-i]
@@ -235,7 +235,7 @@ Node <- setRefClass("Node",
                             }
                           }
                           
-                          .self$setProbabilities(updated_probs)
+                          .self$set_probabilities(updated_probs)
                           for (i in seq_along(.self$probabilities)) {
                             probabilities[[i]] <<- rep(1/length(.self$probabilities), temp_length)
                           }
@@ -263,7 +263,7 @@ Node <- setRefClass("Node",
                           cat("Node", oldParent$name, "has been removed from the parents list of", .self$name, "\nExpression for", .self$name, "is reset to Normal distribution\n")
                         }
                       },
-                      setDistributionType = function(new_distr_type) {
+                      set_distribution_type = function(new_distr_type) {
                         'A method to set the distribution type of a Node for the table configurations.'
                         
                         if (.self$simulated) {
@@ -289,7 +289,7 @@ Node <- setRefClass("Node",
                             }
                         }
                       },
-                      setProbabilities = function(new_probs, by_rows=TRUE) {
+                      set_probabilities = function(new_probs, by_rows=TRUE) {
                         if (by_rows) {
                           if (!.self$simulated && .self$distr_type == "Manual" && (.self$type != "ContinuousInterval" || .self$type != "IntegerInterval")) {
                             if (length(new_probs) == length(.self$states)) {
@@ -345,7 +345,7 @@ Node <- setRefClass("Node",
                           }
                         }
                       },
-                      setExpressions = function(new_expr,partition_parents=NULL) {
+                      set_expressions = function(new_expr,partition_parents=NULL) {
                         if(!is.null(partition_parents)) {
                           partitions <<- partition_parents ######need to check these are in Node's parents list
                           expressions <<- new_expr ######need to check length of exprs is equal to parent_states_product
@@ -353,8 +353,48 @@ Node <- setRefClass("Node",
                             expressions <<- new_expr ######need to make sure length of exprs is 1 if not partitioned
                         }
                       },
-                      setVariables = function(variables_list) {
-                        variables <<- variables_list
+                      get_variables = function(){
+                        varList <- c()
+                        if (length(.self$variables)>0) {
+                          for (i in seq_along(.self$variables)) {
+                            varList[i] <- .self$variables[[i]][[1]]
+                          }
+                        }
+                        else {
+                          varList <- NULL
+                        }
+                        return(varList)
+                      },
+                      set_variable = function(variable_name, variable_value) {
+                        cur_vars <- .self$get_variables()
+                        if (is.null(cur_vars)){
+                          var_num <- 0
+                        } else {
+                          var_num <- length(cur_vars)
+                        }
+                        
+                        if(!is.null(cur_vars) && variable_name %in% cur_vars){
+                          cat("There is already a variable defined with this name")
+                        } else {
+                          variables[[var_num+1]] <<- list(variable_name, variable_value)
+                        }
+                      },
+                      remove_variable = function(variable_name){
+                        cur_vars <- .self$get_variables()
+                        
+                        if(is.null(cur_vars)){
+                          cat("This node has no variables")
+                        } else {
+                          for (i in seq_along(.self$variables)) {
+                            if (.self$variables[[i]][[1]] == variable_name) {
+                              variables <<- variables[-i]
+                              cat(variable_name, "has been removed from the node's variables")
+                              break
+                            } else {
+                              cat("This node does not have a variable called", variable_name)
+                            }
+                          }
+                        }
                       })
                     )
 
@@ -398,7 +438,7 @@ Network <- setRefClass("Network",
                          plot = function(){
                            plot_network(.self)
                          },
-                         getNodes = function() {
+                         get_nodes = function() {
                            nodeList <- c()
                            if (length(.self$nodes)>0) {
                              for (i in seq_along(.self$nodes)) {
@@ -411,12 +451,12 @@ Network <- setRefClass("Network",
                            return(nodeList)
                          },
                          
-                         addNode = function(newNode) {
+                         add_node = function(newNode) {
                            'A method to add new Node objects to a Network.
                            Note that adding a new Node to the network does not automatically add its parents to the network.
                            You need to add all the parents separately too.'
                            
-                           if (newNode$id %in% .self$getNodes()) {
+                           if (newNode$id %in% .self$get_nodes()) {
                              cat("There is already a node in the network with this ID")
                            } else {
                              nodes <<- append(nodes,newNode)
@@ -424,9 +464,9 @@ Network <- setRefClass("Network",
                            }
                            
                          },
-                         removeNode = function(oldNode) {
+                         remove_node = function(oldNode) {
                            'remove Node from Network'
-                           if (oldNode$id %in% .self$getNodes()) {
+                           if (oldNode$id %in% .self$get_nodes()) {
                              for (i in seq_along(.self$nodes)) {
                                if (oldNode$id == .self$nodes[[i]]$id) {
                                  nodes <<- nodes[-i]
@@ -496,7 +536,7 @@ Model <- setRefClass("Model",
                            
                          }
                        },
-                       getNetworks = function() {
+                       get_networks = function() {
                          networkList <- c()
                          if (length(.self$networks)>0) {
                            for (i in seq_along(.self$networks)) {
@@ -508,18 +548,18 @@ Model <- setRefClass("Model",
                          }
                          return(networkList)
                        },
-                       addNetwork = function(newNetwork){
+                       add_network = function(newNetwork){
                          'add Network to the Model'
-                         if (newNetwork$id %in% .self$getNetworks()) {
+                         if (newNetwork$id %in% .self$get_networks()) {
                            cat("There is already a network in the model with this ID")
                          } else {
                            networks <<- append(networks,newNetwork)
                            cat(newNetwork$id, "is successfully added to the model")
                          }
                        },
-                       removeNetwork = function(oldNetwork) {
+                       remove_network = function(oldNetwork) {
                          'remove Network from the Model'
-                         if (oldNetwork$id %in% .self$getNetworks()) {
+                         if (oldNetwork$id %in% .self$get_networks()) {
                            for (i in seq_along(.self$networks)) {
                              if (oldNetwork$id == .self$networks[[i]]$id) {
                                networks <<- networks[-i]
@@ -532,7 +572,7 @@ Model <- setRefClass("Model",
                            cat("This network is not in the model")
                          }
                        },
-                       add_network_link = function(source_network,source_node,target_network,target_node,link_type,pass_state=NULL){
+                       add_network_link = function(source_network, source_node, target_network, target_node, link_type, pass_state=NULL){
                          
                          for (i in seq_along(.self$networks)) {
                            if (source_network == .self$networks[[i]]$id) {
@@ -1255,7 +1295,7 @@ create_batch_cases <- function(inputModel, inputData){
 
 get_node_by_ID <- function(node_id, inputNetwork) {
   nodes <- inputNetwork$nodes
-  node_ids <- inputNetwork$getNodes()
+  node_ids <- inputNetwork$get_nodes()
   
   for (i in seq_along(node_ids)) {
     if (node_id == node_ids[[i]]) {
@@ -1267,12 +1307,12 @@ get_node_by_ID <- function(node_id, inputNetwork) {
 }
 
 create_network_matrix <- function(inputNetwork) {
-  nodes <- inputNetwork$getNodes()
+  nodes <- inputNetwork$get_nodes()
   edge_matrix <- matrix(0, nrow = length(nodes), ncol = length(nodes),
                         dimnames = list(nodes,nodes))
 
   for (i in seq_along(nodes)) {
-    the_parents <- get_node_by_ID(nodes[i],inputNetwork)$getParents()
+    the_parents <- get_node_by_ID(nodes[i],inputNetwork)$get_parents()
     for (j in seq_along(nodes)) {
       if (nodes[j] %in% the_parents) {
         edge_matrix[j,i] <- 1
@@ -1285,7 +1325,7 @@ create_network_matrix <- function(inputNetwork) {
 plot_network <- function(inputNetwork) {
   
   edge_matrix <- create_network_matrix(inputNetwork)
-  nodes <- inputNetwork$getNodes()
+  nodes <- inputNetwork$get_nodes()
   
   edge_matrix_network <- new("graphAM", adjMat=edge_matrix, edgemode="directed")
   edge_matrix_network <- Rgraphviz::layoutGraph(edge_matrix_network)
