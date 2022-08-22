@@ -181,13 +181,13 @@ To see how to create these links, see `addNetworkLink()` function later in this 
 The `Node`, `Network`, and `Model` objects have their own respective methods to help their definition and manipulate their fields. The R class methods are used with the `$` sign following an instance of the class. For example,
 
 ```r
-example_node$addParent(exampleParentNode)
+example_node$add_parent(exampleParentNode)
 ```
 
 or
 
 ```r
-example_network$removeNode(exampleNode)
+example_network$remove_node(exampleNode)
 ```
 
 or
@@ -214,117 +214,173 @@ Because changing the name or description of a `Node` does not cause any compatib
 
 These are the methods `Node` objects can call for various purposes with their input parameters shown in parantheses:
 
-### 4.1.1 `addParent(newParent)`
+### 4.1.1 `add_parent(newParent)`
 
 The method to add a new parent to a node. Equivalent of adding an arc between two nodes on AgenaRisk Desktop. The input parameter `newParent` is another `Node` object. If `newParent` is already a parent for the node, the function does not update the `parents` field of the node.
 
 When a new parent is added to a node, its NPT values and expressions are reset/resized accordingly. 
 
-There is also a method called `addParent_byID(newParentID, varList)`, however, this is only used in the cmpx parser. To add a new parent to a `Node`, it is recommended to use `addParent()` function with a `Node` object as the input.
+There is also a method called `addParent_byID(newParentID, varList)`, however, this is only used in the cmpx parser. To add a new parent to a `Node`, it is recommended to use `add_parent()` function with a `Node` object as the input.
 
-### 4.1.2 `removeParent(oldParent)` 
+### 4.1.2 `remove_parent(oldParent)` 
 
 The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on AgenaRisk Desktop. The input parameter `oldParent` is a `Node` object which has already been added to the `parents` field of the node.
 
 When an existing parent is removed from a node, its NPT values and expressions are reset/resized accordingly.
 
-### 4.1.3 `getParents()`
+### 4.1.3 `get_parents()`
 
 A method to list all the existing parent nodes of a `Node`.
 
-### 4.1.4 `setDistributionType(new_distr_type)`
+### 4.1.4 `set_distribution_type(new_distr_type)`
 
 A method to set the table type (`distr_type`) of a node. If a `Node` is `simulated`, its table type can be "Expression" or "Partitioned" - the latter is only if the node has parent nodes. If a `Node` is `not simulated`, its table type can be "Manual", "Expression", or "Partitioned Expression (if the node has parent nodes)".
 
-### 4.1.5 `setProbabilities(new_probs, by_rows = TRUE)`
+### 4.1.5 `set_probabilities(new_probs, by_rows = TRUE)`
 
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Manual". `new_probs` is a list of numerical values, and the length of the input list depends on the number of the states of the node and of its parents.
 
 You can format the input list in two different orders. If the parameter `by_rows` is set to true, the method will read the input list to fill in the NPT row by row; if set to false, the method will read the input list to fill in the NPT column by columnn. This behaviour is illustrated with use case examples later in this document.
 
-### 4.1.6 `setExpressions(new_expr, partition_parents = NULL)`
+### 4.1.6 `set_expressions(new_expr, partition_parents = NULL)`
 The method to set the probability values if the table type (`distr_type`) of a `Node` is "Expression" or "Partitioned". If the table type is "Expression", `new_expr` is a single string and `partition_parents` is left NULL. If the table type is "Partitioned", `new_expr` is a list of expressions for each parent state, and `partition_parents` is a list of strings for each partitioned parent node's `id`.
 
-### 4.1.7 `setVariables(variables_list)`
+### 4.1.7 `set_variable(variable_name, variable_value)`
 
-A method to set variables (constants) for a node. Takes the `variables_list` input which is a list whose items are lists with fields named in the AgenaRisk variable (constant) definition format: `name = node_id, value = constant_value`. 
+A method to set variables (constants) for a node. Takes the `variable_name` and `variable_value` inputs which define a new variable (constant) for the node.
+
+### 4.1.8 `remove_variable(variable_name)`
+
+A method to remove one of the existing variables (constants) from a node, using the `variable_name`.
 
 ## 4.2 `Network` methods
 
 As described above, `Node` objects can be created and manipulated outside a network in the R environment. Once they are defined, they can be added to a `Network` object. Alternatively, a `Network` object can be created first and then its nodes can be specified. The R environment gives the user freedom, which is different from AgenaRisk Desktop where it is not possible to have a node completely outside any network. Once a `Network` object is created, with or without nodes, the following methods can be used to modify and manipulate the object.
 
-### 4.2.1 `addNode(newNode)`
+### 4.2.1 `add_node(newNode)`
 
 A method to add a new `Node` object to the `nodes` field of a `Network` object. The input `newNode` is a `Node` object and it is added to the network if it's not already in it.
 
 Note that adding a new `Node` to the network does not automatically add its parents to the network. If the node has parents already defined, you need to add all the parent `Node`s separately to the network, too.
 
-### 4.2.2 `removeNode(oldNode)`
+### 4.2.2 `remove_node(oldNode)`
 
 A method to remove an existing `Node` object from the network. Note that removing a Node from a network doesn't automatically remove it from its previous parent-child relationships in the network. You need to adjust such relationships separately on `Node` level.
 
-### 4.2.3 `getNodes()`
+### 4.2.3 `get_nodes()`
 
 A method to see `id`s of all the nodes in a network.
+
+### 4.2.4 `plot()`
+
+A method to plot the graphical structure of a BN network.
 
 ## 4.3 `Model` methods
 
 A `Model` object consists of networks, network links, and datasets (and default settings). A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty scenario called "Scenario 1". Following methods can be used to modify `Model` objects: 
 
-### 4.3.1 `addNetwork(newNetwork)`
+### 4.3.1 `add_network(newNetwork)`
 
 A method to add a new `Network` object to the `networks` field of a `Model` object. The input `newNetwork` is a `Network` object and it is added to the model if it's not already in it.
 
-### 4.3.2 `removeNetwork(oldNetwork)`
+### 4.3.2 `remove_network(oldNetwork)`
 
 A method to remove an existing `Network` object from the model. Note that removing a Node from a network doesn't automatically remove its possible network links to other networks in the model. `networkLinks` field of a `Model` should be adjusted accordingly if needed.
 
-### 4.3.3 `getNetworks()`
+### 4.3.3 `get_networks()`
 
 A method to see `id`s of all the networks in a model.
 
-### 4.3.4 `addNetworkLink(outNetwork, outNode, inNetwork, inNode, linkType)`
+### 4.3.4 `add_network_link(source_network, source_node, target_network, target_node, link_type, pass_state = NULL)`
 
-This is the method to add links to a model between its networks. These links start from an "output node" in a network and go to an "input node" in another network. To create the link, the output and input nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
+This is the method to add links to a model between its networks. These links start from a "source node" in a network and go to a "target node" in another network. To create the link, the source and target nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
 
-* `outNetwork` = `Network$id` of the network the output node belongs to
-* `outNode` = `Node$id` of the output node
-* `inNetwork` = `Network$id` of the network the input node belongs to
-* `inNode` = `Node$id` of the input node
-* `linkType` = a string of the link type name, one of the defined link types in AgenaRisk
+* `source_network` = `Network$id` of the network the source node belongs to
+* `source_node` = `Node$id` of the source node
+* `target_network` = `Network$id` of the network the target node belongs to
+* `target_node` = `Node$id` of the target node
+* `link_type` = a string of the link type name. It can be one of the following:
+    * Marginals
+    * Mean
+    * Median
+    * Variance
+    * StandardDeviation
+    * LowerPercentile
+    * UpperPercentile
+    * State
+* `pass_state` = one of the `Node$states` of the source node. It has to be specified only if the `link_type` of the link is `"State"`, otherwise is left blank.
 
-### 4.3.5 `create_scenario(id)`
+Note that links between networks are allowed only when the source and target nodes fit certain criteria. Network links are allowed if:
+
+* Both nodes are the same type and either of them is simulated
+* Both nodes are the same type and neither is simulated and both have the same number of states
+* Source node is not numeric interval or discrete real and target node is simulated
+
+### 4.3.5 `remove_network_link(source_network, source_node,target_network, target_node)`
+
+A method to remove network links, given the `id`s of the source and target nodes (and the networks they belong to).
+
+### 4.3.6 `remove_all_network_links()`
+
+A method to remove all existing network links in a model.
+
+### 4.3.7 `create_scenario(id)`
 
 It is possible to add multiple scenarios to a model. These scenarios are new `DataSet` objects added to the `dataSets` field of a model. Initially these scenarios have no observations and are only defined by their `id`s. The scenarios are populated with the `enter_observation()` function.
 
-### 4.3.6 `remove_scenario(oldScenario)`
+### 4.3.8 `remove_scenario(oldScenario)`
 
 A method to remove an existing scenario from the model. Input parameter `oldScenario` is the string which is the `id` of a scenario (`dataSet` object).
 
-### 4.3.7 `get_scenarios()`
+### 4.3.9 `get_scenarios()`
 
 A method to list the `id`s of all existing scenarios in a model.
 
-### 4.3.8 `enter_observation(scenario = NULL, node, network, value)`
+### 4.3.10 `enter_observation(scenario = NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE)`
 
 A method to enter observation to a model. To enter the observation to a specific scenario, the scenario id must be given as the input parameter `scenario`. If `scenario` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra scenarios created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this scenario (mimicking the behaviour of entering observation in AgenaRisk Desktop).
 
 The observation is defined with the mandatory input parameters:
 * `node` = `Node$id` of the observed node
 * `network` = `Network$id` of the network the observed node belongs to
-* `value` = the value or state of the observation for the observed node
+* `value` = this parameter can be:
+    * the value or state of the observation for the observed node (if variable_input and soft_evidence are FALSE)
+    * the id of a variable (constant) defined for the node (if variable_input is TRUE)
+    * the array of multiple values and their weights (if soft_evidence is TRUE)
+* `variable_input` = a boolean parameter, set to TRUE if the entered observation is a variable (constant) id for the node instead of an observed value
+* `soft_evidence` = a boolean parameter, set to TRUE if the entered observation is not hard evidence. Then the `value` parameter should follow `c(value_one, value_one_weight, value_two, value_two_weight, ..., value_n, value_n_weight)`
 
-### 4.3.9 `clear_all_observations()`
+### 4.3.11 `remove_observation(scenario = NULL, node, network)`
+
+### 4.3.12 `clear_scenario_observations(scenario)`
+
+A method to clear all observations in a specific scenario in the model.
+
+### 4.3.13 `clear_all_observations()`
 
 A method to clear all observations defined in a model. This function removes all observations from all scenarios.
 
-### 4.3.10 `to_cmpx(filename = NULL)`
+### 4.3.14 `to_cmpx(filename = NULL, settings = NULL)`
 
-A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .cmpx file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
+A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by AgenaRisk.
 
-### 4.3.11 `to_json(filename = NULL)`
+If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
-A method to export the `Model` to a .json file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .json file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
+If the input parameter `settings` is not specified, it will use the default model calculation settings. To enter custom settings, use the following format for the parameter:
+
+```r
+to_cmpx(settings = list(parameterLearningLogging = TRUE/FALSE, 
+                        discreteTails = TRUE/FALSE,
+                        sampleSizeRanked = numeric_value,
+                        convergence = numeric_value,
+                        simulationLogging = TRUE/FALSE,
+                        iterations = numeric_value,
+                        tolerance = numeric_value))
+```
+
+### 4.3.15 `to_json(filename = NULL, settings = NULL)`
+
+A method to export the `Model` to a .json file instead of .cmpx. See `to_cmpx()` description above for all the details.
 
 ## 4.4 Other RAgena Functions
 
@@ -337,6 +393,10 @@ This is the cmpx parser function to import a .cmpx file and create R objects bas
 ### 4.4.2 `create_batch_cases(inputModel, inputData)`
 
 This function takes an R `Model` object (`inputModel`) and an input CSV file (`inputData`) with observations defined in the correct format and creates a batch of scenarios for each row in the input dataset. and generates a .json file. To see its use and the correct format of the CSV file for a model's data, see [Section 7](#7-creating-batch-cases-for-a-model-in-r).
+
+### 4.4.3 `create_csv_template(inputModel)`
+
+This function creates an empty CSV file with the correct format so that it can be filled in and used for `create_batch_bases()`.
 
 # 5. Importing a Model from .cmpx
 
@@ -724,6 +784,12 @@ To remove a node from a network, you can use `removeNode()` function. Again keep
 network_three$removeNode(node_three)
 ```
 
+To plot a network and see its graphical structure, you can use
+
+```r
+network_one$plot()
+```
+
 ## 6.5 Creating and Modifying the Model
 
 BN models consist of networks, the links between networks, and datasets (scenarios). Only the networks information is mandatory to create a new `Model` object in R. The other fields can be filled in afterwards. The new model creation function is:
@@ -751,11 +817,13 @@ example_model$addNetwork(network_two)
 example_model$removeNetwork(network_two)
 ```
 
-Network links between networks of the model can be added with the `addNetworkLink()` function. For example:
+Network links between networks of the model can be added with the `add_networ_link()` function. For example:
 
 ```r
-example_model$addNetworkLink(outNetwork = network_one, outNode = node_three, inNetwork = network_two, inNode = node_three, linkType = "Marginals")
+example_model$add_network_link(source_network = network_one, source_node = node_three, target_network = network_two, target_node = node_three, link_type = "Marginals")
 ```
+
+For link_type options and allowed network link rules, see [`add_network_link()` section](#434-addnetworklinksourcenetwork-sourcenode-targetnetwork-targetnode-linktype-passstate--null).
 
 When a new model is created, it comes with a single scenario (dataSet element) by default. See next section to see how to add observations to this scenario or add new scenarios.
 

@@ -6,7 +6,7 @@ source("RAgena.R")
 # modelPath <- "Models/CarCosts.cmpx"
 # modelPath <- "Models/Asia.cmpx"
 # 
-# inputModel <- car_model
+inputModel <- car_model
 # inputModel <- TIC_Model
 # inputModel <- rel_model
 #
@@ -22,17 +22,32 @@ inputData <- "TICdataset.csv"
 car_costs_path = "Models/CarCosts.cmpx"
 car_model <- from_cmpx(car_costs_path)
 
+inputNetwork <- car_model$networks[[1]]
+plot_network(inputNetwork)
 
 # exporting Car Costs model to cmpx and json files
 
 car_model$to_cmpx()
 car_model$to_json()
 
+length(car_model$networks[[1]]$nodes[[3]]$variables)
+
+
+car_model$networks[[1]]$nodes[[3]]$variables[[1]][[1]]
+car_model$networks[[1]]$nodes[[4]]$variables
+
+car_model$enter_observation(node = )
+
+
 
 # importing Adv Reliability model from cmpx file
   
 adv_rel_model_path = "Models/AdvancedReliabilityModelling.cmpx"
 rel_model <- from_cmpx(adv_rel_model_path)
+
+rel_model$networks[[1]]$plot()
+
+
 
 
 # importing Asia model from cmpx file
@@ -114,6 +129,8 @@ Network_TIC$addNode(TissueInjury)
 # 2.3 creating a new Model
 # and exporting to cmpx and json
 
+inputNetwork <- Network_TIC
+
 TIC_Model <- Model$new(networks = list(Network_TIC))
 
 # TIC_Model$to_cmpx()
@@ -124,23 +141,29 @@ TIC_Model <- Model$new(networks = list(Network_TIC))
 # 2.4 observation, dataset, and scenario operations
 
 # TIC_Model$dataSets[[1]]$observations
-# TIC_Model$create_scenario("Scenario 2")
+
 # TIC_Model$dataSets[[1]]$observations
 # 
 # TIC_Model$networks
 # TIC_Model$networks[[1]]$nodes
-# TIC_Model$enter_observation(node="TIC",network="TIC_Network",value="Yes")
-# TIC_Model$enter_observation(node="HeartRate",network="TIC_Network",value="100")
-# TIC_Model$enter_observation(node="Energy",network="TIC_Network",value="High")
-# TIC_Model$enter_observation(node="Energy",network="TIC_Network",value="Low")
+TIC_Model$enter_observation(node="TIC",network="TIC_Network",value="Yes")
+TIC_Model$enter_observation(node="HeartRate",network="TIC_Network",value="100")
+TIC_Model$enter_observation(node="Energy",network="TIC_Network",value="High")
+TIC_Model$enter_observation(node="Energy",network="TIC_Network",value="Low")
+TIC_Model$remove_observation(node="Energy",network="TIC_Network")
+TIC_Model$remove_observation(node="TIC",network="TIC_Network")
+TIC_Model$clear_all_observations()
 # TIC_Model$clear_all_observations()
-# 
-# TIC_Model$enter_observation(node="HeartRate",network="TIC_Network",value="95")
-# TIC_Model$enter_observation(scenario="Scenario 2",node="HeartRate",network="TIC_Network",value="95")
-# TIC_Model$enter_observation(scenario="Scenario 2",node="HeartRate",network="TIC_Network",value="100")
+
+TIC_Model$create_scenario("Scenario 2")
+TIC_Model$enter_observation(node="HeartRate",network="TIC_Network",value="95")
+TIC_Model$enter_observation(scenario="Scenario 2",node="HeartRate",network="TIC_Network",value="95")
+TIC_Model$enter_observation(scenario="Scenario 2",node="HeartRate",network="TIC_Network",value="100")
 # TIC_Model$enter_observation(scenario="Scenario 2",node="Energy",network="TIC_Network",value="Low")
 # TIC_Model$enter_observation(scenario="Scenario 1",node="Energy",network="TIC_Network",value="Low")
 # TIC_Model$enter_observation(node="Energy",network="TIC_Network",value="High")
+
+TIC_Model$clear_scenario_observations("Scenario 1")
 
 # 2.5 creating batch case json files using a CSV input
 # correct CSV format: each column header is titled Node_id.Network_id
