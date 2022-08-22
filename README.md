@@ -267,6 +267,10 @@ A method to remove an existing `Node` object from the network. Note that removin
 
 A method to see `id`s of all the nodes in a network.
 
+### 4.2.4 `plot()`
+
+A method to plot the graphical structure of a BN network.
+
 ## 4.3 `Model` methods
 
 A `Model` object consists of networks, network links, and datasets (and default settings). A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty scenario called "Scenario 1". Following methods can be used to modify `Model` objects: 
@@ -283,48 +287,96 @@ A method to remove an existing `Network` object from the model. Note that removi
 
 A method to see `id`s of all the networks in a model.
 
-### 4.3.4 `addNetworkLink(outNetwork, outNode, inNetwork, inNode, linkType)`
+### 4.3.4 `add_network_link(source_network, source_node, target_network, target_node, link_type, pass_state = NULL)`
 
-This is the method to add links to a model between its networks. These links start from an "output node" in a network and go to an "input node" in another network. To create the link, the output and input nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
+This is the method to add links to a model between its networks. These links start from a "source node" in a network and go to a "target node" in another network. To create the link, the source and target nodes in the networks need to be specified together with the network they belong to (by the `Node` and `Network` `id`s). The input parameters are as follows:
 
-* `outNetwork` = `Network$id` of the network the output node belongs to
-* `outNode` = `Node$id` of the output node
-* `inNetwork` = `Network$id` of the network the input node belongs to
-* `inNode` = `Node$id` of the input node
-* `linkType` = a string of the link type name, one of the defined link types in AgenaRisk
+* `source_network` = `Network$id` of the network the source node belongs to
+* `source_node` = `Node$id` of the source node
+* `target_network` = `Network$id` of the network the target node belongs to
+* `target_node` = `Node$id` of the target node
+* `link_type` = a string of the link type name. It can be one of the following:
+    * Marginals
+    * Mean
+    * Median
+    * Variance
+    * StandardDeviation
+    * LowerPercentile
+    * UpperPercentile
+    * State
+* `pass_state` = one of the `Node$states` of the source node. It has to be specified only if the `link_type` of the link is `"State"`, otherwise is left blank.
 
-### 4.3.5 `create_scenario(id)`
+Note that links between networks are allowed only when the source and target nodes fit certain criteria. Network links are allowed if:
+
+* Both nodes are the same type and either of them is simulated
+* Both nodes are the same type and neither is simulated and both have the same number of states
+* Source node is not numeric interval or discrete real and target node is simulated
+
+### 4.3.5 `remove_network_link(source_network, source_node,target_network, target_node)`
+
+A method to remove network links, given the `id`s of the source and target nodes (and the networks they belong to).
+
+### 4.3.6 `remove_all_network_links()`
+
+A method to remove all existing network links in a model.
+
+### 4.3.7 `create_scenario(id)`
 
 It is possible to add multiple scenarios to a model. These scenarios are new `DataSet` objects added to the `dataSets` field of a model. Initially these scenarios have no observations and are only defined by their `id`s. The scenarios are populated with the `enter_observation()` function.
 
-### 4.3.6 `remove_scenario(oldScenario)`
+### 4.3.8 `remove_scenario(oldScenario)`
 
 A method to remove an existing scenario from the model. Input parameter `oldScenario` is the string which is the `id` of a scenario (`dataSet` object).
 
-### 4.3.7 `get_scenarios()`
+### 4.3.9 `get_scenarios()`
 
 A method to list the `id`s of all existing scenarios in a model.
 
-### 4.3.8 `enter_observation(scenario = NULL, node, network, value)`
+### 4.3.10 `enter_observation(scenario = NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE)`
 
 A method to enter observation to a model. To enter the observation to a specific scenario, the scenario id must be given as the input parameter `scenario`. If `scenario` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra scenarios created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this scenario (mimicking the behaviour of entering observation in AgenaRisk Desktop).
 
 The observation is defined with the mandatory input parameters:
 * `node` = `Node$id` of the observed node
 * `network` = `Network$id` of the network the observed node belongs to
-* `value` = the value or state of the observation for the observed node
+* `value` = this parameter can be:
+    * the value or state of the observation for the observed node (if variable_input and soft_evidence are FALSE)
+    * the id of a variable (constant) defined for the node (if variable_input is TRUE)
+    * the array of multiple values and their weights (if soft_evidence is TRUE)
+* `variable_input` = a boolean parameter, set to TRUE if the entered observation is a variable (constant) id for the node instead of an observed value
+* `soft_evidence` = a boolean parameter, set to TRUE if the entered observation is not hard evidence. Then the `value` parameter should follow `c(value_one, value_one_weight, value_two, value_two_weight, ..., value_n, value_n_weight)`
 
-### 4.3.9 `clear_all_observations()`
+### 4.3.11 `remove_observation(scenario = NULL, node, network)`
+
+### 4.3.12 `clear_scenario_observations(scenario)`
+
+A method to clear all observations in a specific scenario in the model.
+
+### 4.3.13 `clear_all_observations()`
 
 A method to clear all observations defined in a model. This function removes all observations from all scenarios.
 
-### 4.3.10 `to_cmpx(filename = NULL)`
+### 4.3.14 `to_cmpx(filename = NULL, settings = NULL)`
 
-A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .cmpx file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
+A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by AgenaRisk.
 
-### 4.3.11 `to_json(filename = NULL)`
+If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
-A method to export the `Model` to a .json file. This method passes on all the information about the model, its datasets, its networks, and their nodes (and default settings) to a .json file in the correct format readable by AgenaRisk. If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
+If the input parameter `settings` is not specified, it will use the default model calculation settings. To enter custom settings, use the following format for the parameter:
+
+```r
+to_cmpx(settings = list(parameterLearningLogging = TRUE/FALSE, 
+                        discreteTails = TRUE/FALSE,
+                        sampleSizeRanked = numeric_value,
+                        convergence = numeric_value,
+                        simulationLogging = TRUE/FALSE,
+                        iterations = numeric_value,
+                        tolerance = numeric_value))
+```
+
+### 4.3.15 `to_json(filename = NULL, settings = NULL)`
+
+A method to export the `Model` to a .json file instead of .cmpx. See `to_cmpx()` description above for all the details.
 
 ## 4.4 Other RAgena Functions
 
@@ -337,6 +389,10 @@ This is the cmpx parser function to import a .cmpx file and create R objects bas
 ### 4.4.2 `create_batch_cases(inputModel, inputData)`
 
 This function takes an R `Model` object (`inputModel`) and an input CSV file (`inputData`) with observations defined in the correct format and creates a batch of scenarios for each row in the input dataset. and generates a .json file. To see its use and the correct format of the CSV file for a model's data, see [Section 7](#7-creating-batch-cases-for-a-model-in-r).
+
+### 4.4.3 `create_csv_template(inputModel)`
+
+This function creates an empty CSV file with the correct format so that it can be filled in and used for `create_batch_bases()`.
 
 # 5. Importing a Model from .cmpx
 
@@ -724,6 +780,12 @@ To remove a node from a network, you can use `removeNode()` function. Again keep
 network_three$removeNode(node_three)
 ```
 
+To plot a network and see its graphical structure, you can use
+
+```r
+network_one$plot()
+```
+
 ## 6.5 Creating and Modifying the Model
 
 BN models consist of networks, the links between networks, and datasets (scenarios). Only the networks information is mandatory to create a new `Model` object in R. The other fields can be filled in afterwards. The new model creation function is:
@@ -751,11 +813,13 @@ example_model$addNetwork(network_two)
 example_model$removeNetwork(network_two)
 ```
 
-Network links between networks of the model can be added with the `addNetworkLink()` function. For example:
+Network links between networks of the model can be added with the `add_networ_link()` function. For example:
 
 ```r
-example_model$addNetworkLink(outNetwork = network_one, outNode = node_three, inNetwork = network_two, inNode = node_three, linkType = "Marginals")
+example_model$add_network_link(source_network = network_one, source_node = node_three, target_network = network_two, target_node = node_three, link_type = "Marginals")
 ```
+
+For link_type options and allowed network link rules, see [`add_network_link()` section](#434-addnetworklinksourcenetwork-sourcenode-targetnetwork-targetnode-linktype-passstate--null).
 
 When a new model is created, it comes with a single scenario (dataSet element) by default. See next section to see how to add observations to this scenario or add new scenarios.
 
