@@ -872,10 +872,12 @@ Model <- setRefClass("Model",
                        },
                        to_cmpx = function(filename=NULL, settings=NULL){
                          if(is.null(settings)){
-                           json_object <- generate_cmpx(.self)
+                           json_list <- generate_cmpx(.self)
                          } else {
-                           json_object <- generate_cmpx(.self, settings = settings)
+                           json_list <- generate_cmpx(.self, settings = settings)
                          }
+                         
+                         json_object <- rjson::toJSON(json_list)
                          
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".cmpx")
@@ -886,16 +888,19 @@ Model <- setRefClass("Model",
                        },
                        to_json = function(filename=NULL, settings=NULL){
                          if(is.null(settings)){
-                           json_object <- generate_cmpx(.self)
+                           json_list <- generate_cmpx(.self)
                          } else {
-                           json_object <- generate_cmpx(.self, settings = settings)
+                           json_list <- generate_cmpx(.self, settings = settings)
                          }
+                         
+                         json_object <- rjson::toJSON(json_list)
                          
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".json")
                          } else {
                            file_name <- paste0(filename,".json")
                          }
+                         
                          write(json_object,file_name)
                        }
                      )) 
@@ -1250,14 +1255,9 @@ generate_cmpx <- function(inputModel, settings=NULL) {
                      links = networklinks_list)
   
   json_list <- list(model = model_list)
-  json_object <- rjson::toJSON(json_list)
-  
-  return(json_object)
+  return(json_list)
 
 }
-
-
-
 
 
 create_batch_cases <- function(inputModel, inputData){
