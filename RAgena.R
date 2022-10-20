@@ -1062,6 +1062,11 @@ generate_cmpx <- function(inputModel, settings=NULL) {
     obs_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$observations))
   }
   
+  res_list <- vector(mode = "list", length = length(inputModel$dataSets))
+  for (i in seq_along(obs_list)){
+    res_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$results))
+  }
+  
 
   
   
@@ -1238,8 +1243,52 @@ generate_cmpx <- function(inputModel, settings=NULL) {
     }
   }
   
+  res_val_list <-  vector(mode = "list", length = length(inputModel$dataSets))
+  if(length(inputModel$dataSets[[1]]$results)>0) {
+    for (i in seq_along(res_val_list)) {
+      res_val_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$results))
+      for (j in seq_along(res_val_list[[i]])) {
+        res_val_list[[i]][[j]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$results[[j]]$resultValues))
+      for (k in seq_along(res_val_list[[i]][[j]])) {
+        res_val_list[[i]][[j]][[k]] <- inputModel$dataSets[[i]]$results[[j]]$resultValues[[k]]
+      }}
+    }
+  }
+
   
   
+  sum_stat_list <- vector(mode = "list", length = length(inputModel$dataSets))
+  for (i in seq_along(sum_stat_list)) {
+    sum_stat_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$results))
+    for (j in seq_along(sum_stat_list[[i]])) {
+      if(!is.null(inputModel$dataSets[[i]]$results[[j]]$summaryStatistics)){
+        sum_stat_list[[i]][[j]] <- inputModel$dataSets[[i]]$results[[j]]$summaryStatistics
+      }
+    }
+  }
+  
+  for (i in seq_along(inputModel$dataSets)) {
+    if(length(inputModel$dataSets[[i]]$results)>0) {
+      for (j in seq_along(inputModel$dataSets[[i]]$results)) {
+
+        res_list[[i]][[j]] <- list(node = inputModel$dataSets[[i]]$results[[j]]$node,
+                                   network = inputModel$dataSets[[i]]$results[[j]]$network)
+        if(!is.null(inputModel$dataSets[[i]]$results[[j]]$summaryStatistics)) {
+          res_list[[i]][[j]]$summaryStatistics <- sum_stat_list[[i]][[j]]
+        }
+        if(!is.null(inputModel$dataSets[[i]]$results)) {
+          res_list[[i]][[j]]$resultValues <- res_val_list[[i]][[j]]
+        }
+      }
+    }
+  }
+  
+  for (i in seq_along(datasets_list)) {
+    if(length(inputModel$dataSets[[i]]$results) > 0) {
+      datasets_list[[i]]$results <- res_list[[i]]
+    }
+  
+  }
   
   
   # networklinks_list <- list(sourceNetwork = "placeholder",
