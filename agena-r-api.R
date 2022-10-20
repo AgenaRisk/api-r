@@ -13,8 +13,9 @@ login <- function(username, password){
   
   response <- POST(auth_endpoint, body = body, encode = "form")
   login_time <- as.integer(Sys.time())
+  #refresh_time <- NULL
   
-  return(list(response,login_time))
+  return(list(response, login_time))
 
  }
 
@@ -60,7 +61,7 @@ refresh_auth <- function(cur_login){
   login_time <- cur_login[[2]]
   #refresh_time <- as.integer(Sys.time())
   
-  return(list(response,login_time))
+  return(list(response, login_time))
 }
 
 ###### CALCULATION (POST model json and GET results)
@@ -68,15 +69,23 @@ refresh_auth <- function(cur_login){
 calc_model <- function(input_model, cur_login){
   model_to_send <- generate_cmpx(input_model)
   
+  if (length(input_model$dataSets[[1]]$observations)>0){
+    body <- list("sync-wait" = "true",
+                 "model" = model_to_send$model,
+                 "dataSet" = model_to_send$model$dataSets[[1]])
+  } else {
+    body <- list("sync-wait" = "true",
+                 "model" = model_to_send$model)
+  }
   calculate_endpoint <- "https://api.agena.ai/public/v1/calculate"
-  body <- list("sync-wait" = "true",
-               "model" = model_to_send$model)
   access_token <- content(cur_login[[1]])$access_token
   
   
   response <- POST(calculate_endpoint, body = body,
                    add_headers("Authorization" = paste("Bearer",access_token)),
                    encode = "json", accept_json())
+  
+  return(response)
 }
 
 calculate <- function(input_model, login) {
@@ -93,7 +102,55 @@ calculate <- function(input_model, login) {
     response <- calc_model(input_model, login)
   }
   
-    return(response)
+  #return(response)
+  
+  input_model$dataSets[[1]]$results <- content(response)$results
+  return(input_model)
+  
+}
+
+get_results <- function(input_model, login){
+  if (check_auth(login) == 2){
+    cat("Authentication expired, please log in again")
+    break
+  }
+  if (check_auth(login) == 1){
+    new_login <- refresh_auth(login)
+    response <- calc_model(input_model, new_login)
+  }
+  if (check_auth(login) == 0){
+    response <- calc_model(input_model, login)
+  }
+  
+  results <- content(response)$results
+  #this function will generate a csv of results
+  
+}
+
+analyse_sens <- function(){
+  
+  sa_endpoint <- "https://api.agena.ai/public/v1/tools/sensitivity"
+  
+  #to be completed
+  
+}
+
+sensitivity_analysis <- function(input_model, login){
+ 
+  if (check_auth(login) == 2){
+    cat("Authentication expired, please log in again")
+    break
+  }
+  if (check_auth(login) == 1){
+    new_login <- refresh_auth(login)
+    cat(content(new_login[[1]])$access_token)
+    response <- analyse_sens(input_model, new_login)
+  }
+  if (check_auth(login) == 0){
+    response <- analyse_sens(input_model, login)
+  }
+  
+  return(response) 
 }
 
 
