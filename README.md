@@ -2,21 +2,21 @@
 
 * [Description](#1-description)
 * [Prerequisites](#2-prerequisites)
-* [Structure of RAgena Classes](#3-structure-of-ragena-classes)
+* [Structure of R-Agena Classes](#3-structure-of-r-agena-classes)
 * [Class Methods](#4-class-methods)
 * [Importing a Model from .cmpx](#5-importing-a-model-from-cmpx)
 * [Creating and Modifying a Model in R](#6-creating-and-modifying-a-model-in-r)
 * [Creating Batch Cases for a Model in R](#7-creating-batch-cases-for-a-model-in-r)
-* [Agena AI Cloud with RAgena](#8-agena-ai-cloud-with-ragena)
-* [RAgena Use Case Examples](#9-ragena-use-case-examples)
+* [Agena AI Cloud with R-Agena](#8-agena-ai-cloud-with-r-agena)
+* [R-Agena Use Case Examples](#9-r-agena-use-case-examples)
 
 # 1. Description
 
-RAgena is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to Agena AI Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with Agena AI Cloud for individual or batch model calculations.
+R-Agena is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to Agena AI Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with Agena AI Cloud for individual or batch model calculations.
 
 # 2. Prerequisites
 
-RAgena requires `rjson`, `httr`, and `Rgraphviz` packages installed.
+R-Agena requires `rjson`, `httr`, and `Rgraphviz` packages installed.
 
 To install `rjson` and `httr` from CRAN:
 
@@ -34,7 +34,7 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("Rgraphviz")
 ```
 
-# 3. Structure of RAgena Classes
+# 3. Structure of R-Agena Classes
 
 The Bayesian networks (BNs) in the R environment are represented with several objects: `Node`, `Network`, `DataSet`, and `Model`. These R objects generally follow their equivalents defined in Agena AI models.
 
@@ -354,6 +354,8 @@ The observation is defined with the mandatory input parameters:
 
 ### 4.3.11 `remove_observation(scenario = NULL, node, network)`
 
+A method to remove a specific observation from the model. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
+
 ### 4.3.12 `clear_scenario_observations(scenario)`
 
 A method to clear all observations in a specific scenario in the model.
@@ -384,13 +386,17 @@ to_cmpx(settings = list(parameterLearningLogging = TRUE/FALSE,
 
 A method to export the `Model` to a .json file instead of .cmpx. See `to_cmpx()` description above for all the details.
 
-## 4.4 Other RAgena Functions
+### 4.3.16 `get_results()`
 
-RAgena environment provides certain other functions outside the class methods.
+A method to generate a .csv file based on the calculation results a `Model` contains. See [Section 8](#8-agena-ai-cloud-with-r-agena) for details.
+
+## 4.4 Other R-Agena Functions
+
+R-Agena environment provides certain other functions outside the class methods.
 
 ### 4.4.1 `from_cmpx(modelPath = "/path/to/model/file.cmpx")`
 
-This is the cmpx parser function to import a .cmpx file and create R objects based on the model in the file. To see its use, see [Section 5](#5-importing-a-model-from-cmpx) and [Section 10](#10-ragena-use-case-examples).
+This is the cmpx parser function to import a .cmpx file and create R objects based on the model in the file. To see its use, see [Section 5](#5-importing-a-model-from-cmpx) and [Section 9](#9-r-agena-use-case-examples).
 
 ### 4.4.2 `create_batch_cases(inputModel, inputData)`
 
@@ -400,9 +406,38 @@ This function takes an R `Model` object (`inputModel`) and an input CSV file (`i
 
 This function creates an empty CSV file with the correct format so that it can be filled in and used for `create_batch_bases()`.
 
+### 4.4.4 `create_sensitivity_config(...)`
+
+A function to create a sensitivity configuration object if a sensitivity analysis request will be sent to Agena AI Cloud servers. Its parameters are:
+
+* `target` = target node ID for the analysis
+* `sensitivity_nodes` = a list of sensitivity node IDs
+* (optional) `network` = ID of the network to perform analysis on. If missing, the first network in the model is used
+* (optional) `dataset` = ID of the dataSet (scenario) to use for analysis
+* (optional) `report_settings` = settings for the sensitivity analysis report. A named list with the following fields:
+    * `summaryStats` (a list with the following fields)
+        * mean
+        * median
+        * variance
+        * standardDeviation
+        * upperPercentile
+        * lowerPercentile
+    * `sumsLowerPercentileValue` (set the reported lower percentile value.
+Default is 25)
+    * `sumsUpperPercentileValue` (set the reported upper percentile value.
+Default is 75)
+    * `sensLowerPercentileValue` (lower percentile value to limit sensitivity node data by. Default is 0)
+    * `sensUpperPercentileValue` (upper percentile value to limit sensitivity node data by. Default is 100)
+
+For the use of the function, see [Section 8](#8-agena-ai-cloud-with-r-agena).
+
+## 4.5 Agena AI Cloud Related Functions
+
+R-Agena environment allows users to send their models to Agena AI Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agena-ai-cloud-with-r-agena).
+
 # 5. Importing a Model from .cmpx
 
-To use RAgena environment, you can create a new R script and source/import the base RAgena.R code with:
+To use R-Agena environment, you can create a new R script and source/import the base RAgena.R code with:
 
 ```r
 source("RAgena.R")
@@ -410,7 +445,7 @@ source("RAgena.R")
 # or source("full/path/to/RAgena.R") if the base R code is not in the same working directory as the current R script
 ```
 
-This will import all the RAgena classes and functions to be used in the current R script.
+This will import all the R-Agena classes and functions to be used in the current R script.
 
 
 To import an existing Agena AI model (from a .cmpx file), use the `from_cmpx()` function:
@@ -451,7 +486,7 @@ Once the R model is created from the imported .cmpx file, the `Model` object as 
 
 It is possible to create an Agena AI model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used with Agena AI calculations and inference, locally or on Agena AI Cloud. In this section, creating a model is shown step by step, starting with nodes.
 
-In an R script where base RAgena.R code is sourced, you can create and modify BNs in R. As a reminder, to source/import the base code:
+In an R script where base R-Agena.R code is sourced, you can create and modify BNs in R. As a reminder, to source/import the base code:
 
 ```r
 source("RAgena.R")
@@ -873,7 +908,7 @@ example_model$to_json("custom_file_name")
 
 # 7. Creating Batch Cases for a Model in R
 
-RAgena environment allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the dataset is a single case (scenario) with a set of observed values for nodes in the model. First column of the CSV file is the scenario ids which will be used to create a new risk scenario for each data row. All other columns are possible evidence variables whose headers follow the "node_id.network_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs.
+R-Agena environment allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the dataset is a single case (scenario) with a set of observed values for nodes in the model. First column of the CSV file is the scenario ids which will be used to create a new risk scenario for each data row. All other columns are possible evidence variables whose headers follow the "node_id.network_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs.
 
 An example CSV format is as below:
 
@@ -916,7 +951,7 @@ An example CSV format is as below:
 </tbody>
 </table>
 
-Once the model is defined in RAgena and the CSV file with the observations is prepared, you can use the `create_batch_cases()` function to generate scenarios for the BN:
+Once the model is defined in R-Agena and the CSV file with the observations is prepared, you can use the `create_batch_cases()` function to generate scenarios for the BN:
 
 ```r
 create_batch_cases(inputModel, inputData)
@@ -934,21 +969,69 @@ Important note: Once the function has generated the .json file with all the new 
 
 Assume that you use a model in R with two already existing scenarios: an empty default "Scenario 1" which was created with the model, and a scenario you have added "Test patient" with some observations. And you have a CSV file with 10 rows of data, whose Case column reads: "Patient 1, Patient 2, ..., Patient 10", with the set of observations for 10 patients. Once `create_batch_cases()` is used, it's going to generate a .json file for this model with all 12 scenarios, but after the use of the function, the model will still have only "Scenario 1" and "Test patient" scenarios in its dataSets.
 
-# 8. Agena AI Cloud with RAgena
+# 8. Agena AI Cloud with R-Agena
 
-You can use RAgena environment to authenticate with Agena AI Cloud (using your existing account) and send your model files to Cloud for calculations. The connection between your local RAgena environment and Agena AI Cloud servers is based on the `httr` package in R.
+You can use R-Agena environment to authenticate with Agena AI Cloud (using your existing account) and send your model files to Cloud for calculations. The connection between your local R-Agena environment and Agena AI Cloud servers is based on the `httr` package in R.
 
 ## 8.1 Authentication
 
-login()
+`login()` function is used to authenticate the user. To create an account, visit https://portal.agena.ai. Once created, you can use your credentials in R-Agena to access the servers.
+
+```r
+example_login <- login(username, password)
+```
+
+This will send a POST request to authentication server, and will return the login object (including access and refresh tokens) which will be used to authenticate further operations.
 
 ## 8.2 Model Calculation
 
-calculate()
+`calculate()` function is used to send an R model object to Agena AI Cloud servers for calculation. The function takes the following parameters:
 
-# 9. RAgena Use Case Examples
+* `input_model` is the R Model object
+* `login` is the login object created with the credentials
+* (optional) `scenario` is the name of the `scenario` that contains the set of scenarios (`$id` of one of the `dataSets` objects) if any. If the model has only one scenario with observations, scenario needs not be specified (it is also possible to send a model without any observations).
 
-In this section, some use case examples of RAgena environment are shown. 
+Currently servers accept a single set of observations for each calculation, if the R model has multiple scenarios (set of observations), you need to specify which scenario is to be used.
+
+For example,
+
+```r
+calculate(example_model, example_login)
+```
+
+or
+
+```r
+calculate(example_model, example_login, scenario_id)
+
+```
+
+If calculation is successful, this function will update the R model (the relevant `dataSets$results` field in the model) with results of the calculation.
+
+If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file.
+
+## 8.3 Sensitivity Analysis
+
+For the sensitivity analysis, first you need to crate a sensivity configuration object, using the `create_sensitivity_config(...)` function. For example,
+
+```r
+example_sens_config <- create_sensitivity_config(
+                      target = "node_one",
+                      sensitivity_nodes = c("node_two","node_three"),
+                      report_settings = list(summaryStats = c("mean", "variance")),
+                      dataset = "scenario_id",
+                      network = "network_one")
+```
+
+Using this config object, now you can use the `sensitivity_analysis()` function to send the request to the server. For example,
+
+```r
+sensitivity_analysis(example_model, test_login, example_sens_config)
+```
+
+# 9. R-Agena Use Case Examples
+
+In this section, some use case examples of R-Agena environment are shown. 
 
 ## 9.1 Diet Experiment Model
 
