@@ -2,25 +2,27 @@
 
 * [Description](#1-description)
 * [Prerequisites](#2-prerequisites)
-* [Structure of RAgena Classes](#3-structure-of-ragena-classes)
+* [Structure of R-Agena Classes](#3-structure-of-r-agena-classes)
 * [Class Methods](#4-class-methods)
 * [Importing a Model from .cmpx](#5-importing-a-model-from-cmpx)
 * [Creating and Modifying a Model in R](#6-creating-and-modifying-a-model-in-r)
 * [Creating Batch Cases for a Model in R](#7-creating-batch-cases-for-a-model-in-r)
-* [RAgena Use Case Examples](#8-ragena-use-case-examples)
+* [Agena AI Cloud with R-Agena](#8-agena-ai-cloud-with-r-agena)
+* [R-Agena Use Case Examples](#9-r-agena-use-case-examples)
 
 # 1. Description
 
-RAgena is an R environment for AgenaRisk. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files.
+R-Agena is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to Agena AI Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with Agena AI Cloud for individual or batch model calculations.
 
 # 2. Prerequisites
 
-RAgena requires `rjson` and `Rgraphviz` packages installed.
+R-Agena requires `rjson`, `httr`, and `Rgraphviz` packages installed.
 
-To install `rjson` from CRAN:
+To install `rjson` and `httr` from CRAN:
 
 ```r
 install.packages('rjson')
+install.packages('httr')
 ```
 
 To install `Rgraphviz` from Bioconductor:
@@ -32,9 +34,9 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("Rgraphviz")
 ```
 
-# 3. Structure of RAgena Classes
+# 3. Structure of R-Agena Classes
 
-The Bayesian networks (BNs) in the R environment are represented with several objects: `Node`, `Network`, `DataSet`, and `Model`. These R objects generally follow their definition in AgenaRisk.
+The Bayesian networks (BNs) in the R environment are represented with several objects: `Node`, `Network`, `DataSet`, and `Model`. These R objects generally follow their equivalents defined in Agena AI models.
 
 ## 3.1 `Node` objects
 
@@ -42,7 +44,7 @@ These represent the nodes in a BN. The fields that define a `Node` object are as
 
 ### 3.1.1 `id`
 
-Mandatory field to create a new `Node` object. This is the unique identifier of AgenaRisk nodes.
+Mandatory field to create a new `Node` object. This is the unique identifier of Agena AI model nodes.
 
 ### 3.1.2 `name`
 
@@ -69,7 +71,7 @@ If it's not specified when creating a new node, the new node is "Boolean" by def
 
 Other `Node` objects can be pointed as parents of a `Node` object. It is not recommended to modify this field manually, to add parents to a node, see the function `addParent()`.
 
-Something to keep in mind: the parent-child relationship information is stored at `Node` level in R environment thanks to this field, as opposed to the separate `links` field of a .cmpx/.json file for the AgenaRisk models. When importing or exporting .cmpx files you do not need to think about this difference as the cmpx parser and writer functions handle the correct formats. This difference allows adding and removing `Node` objects as parents 
+Something to keep in mind: the parent-child relationship information is stored at `Node` level in R environment thanks to this field, as opposed to the separate `links` field of a .cmpx/.json file for the Agena AI models. When importing or exporting .cmpx files you do not need to think about this difference as the cmpx parser and writer functions handle the correct formats. This difference allows adding and removing `Node` objects as parents 
 
 ### 3.1.6 `simulated`
 
@@ -112,7 +114,7 @@ If the table type (`distr_type`) of the node is "Partitioned", in addition to th
 
 ### 3.1.12 `variables`
 
-The node variables are called constants on AgenaRisk desktop. This field, if specified, sets the constant value for the node observations.
+The node variables are called constants on Agena AI Modeller. This field, if specified, sets the constant value for the node observations.
 
 ## 3.2 `Network` objects 
 
@@ -136,7 +138,7 @@ Description, optional. If not specified, the string "New Network" is assigned to
 
 A list of `Node` objects which are in the network. These `Node` objects have their own fields which define them as explained above in this document.
 
-Note that `Network` objects do not have a `links` field unlike the AgenaRisk models. As explained in `Node$parents` section above, this information is stored in `Node` objects in the R environment. When importing a .cmpx model, the information in `links` field is used to populate `Node$parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node$parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
+Note that `Network` objects do not have a `links` field unlike the Agena AI models. As explained in `Node$parents` section above, this information is stored in `Node` objects in the R environment. When importing a .cmpx model, the information in `links` field is used to populate `Node$parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node$parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
 
 ## 3.3 `DataSet` objects 
 
@@ -152,7 +154,7 @@ Under each scenario, observations for all the observed nodes in all the networks
 
 ### 3.3.3 `results`
 
-This field is defined only for when a .cmpx model with calculations is imported. When creating a new BN in the R environment, this field is not created or filled in. The `results` field stores the posterior probability and inference results upon model calculation on AgenaRisk servers.
+This field is defined only for when a .cmpx model with calculations is imported. When creating a new BN in the R environment, this field is not created or filled in. The `results` field stores the posterior probability and inference results upon model calculation on Agena AI Cloud.
 
 ## 3.4 `Model` objects
 
@@ -172,7 +174,7 @@ Optional field for `DataSet` objects (scenarios). When creating a new `Model`, i
 
 ## 3.4.4 `networkLinks`
 
-If the `Model` has multiple networks, it is possible to have links between these networks, following the AgenaRisk networkLinks format.
+If the `Model` has multiple networks, it is possible to have links between these networks, following the Agena AI model networkLinks format.
 
 To see how to create these links, see `addNetworkLink()` function later in this document.
 
@@ -216,7 +218,7 @@ These are the methods `Node` objects can call for various purposes with their in
 
 ### 4.1.1 `add_parent(newParent)`
 
-The method to add a new parent to a node. Equivalent of adding an arc between two nodes on AgenaRisk Desktop. The input parameter `newParent` is another `Node` object. If `newParent` is already a parent for the node, the function does not update the `parents` field of the node.
+The method to add a new parent to a node. Equivalent of adding an arc between two nodes on Agena AI Modeller. The input parameter `newParent` is another `Node` object. If `newParent` is already a parent for the node, the function does not update the `parents` field of the node.
 
 When a new parent is added to a node, its NPT values and expressions are reset/resized accordingly. 
 
@@ -224,7 +226,7 @@ There is also a method called `addParent_byID(newParentID, varList)`, however, t
 
 ### 4.1.2 `remove_parent(oldParent)` 
 
-The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on AgenaRisk Desktop. The input parameter `oldParent` is a `Node` object which has already been added to the `parents` field of the node.
+The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on Agena AI Modeller. The input parameter `oldParent` is a `Node` object which has already been added to the `parents` field of the node.
 
 When an existing parent is removed from a node, its NPT values and expressions are reset/resized accordingly.
 
@@ -255,7 +257,7 @@ A method to remove one of the existing variables (constants) from a node, using 
 
 ## 4.2 `Network` methods
 
-As described above, `Node` objects can be created and manipulated outside a network in the R environment. Once they are defined, they can be added to a `Network` object. Alternatively, a `Network` object can be created first and then its nodes can be specified. The R environment gives the user freedom, which is different from AgenaRisk Desktop where it is not possible to have a node completely outside any network. Once a `Network` object is created, with or without nodes, the following methods can be used to modify and manipulate the object.
+As described above, `Node` objects can be created and manipulated outside a network in the R environment. Once they are defined, they can be added to a `Network` object. Alternatively, a `Network` object can be created first and then its nodes can be specified. The R environment gives the user freedom, which is different from Agena AI Modeller where it is not possible to have a node completely outside any network. Once a `Network` object is created, with or without nodes, the following methods can be used to modify and manipulate the object.
 
 ### 4.2.1 `add_node(newNode)`
 
@@ -338,7 +340,7 @@ A method to list the `id`s of all existing scenarios in a model.
 
 ### 4.3.10 `enter_observation(scenario = NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE)`
 
-A method to enter observation to a model. To enter the observation to a specific scenario, the scenario id must be given as the input parameter `scenario`. If `scenario` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra scenarios created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this scenario (mimicking the behaviour of entering observation in AgenaRisk Desktop).
+A method to enter observation to a model. To enter the observation to a specific scenario, the scenario id must be given as the input parameter `scenario`. If `scenario` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra scenarios created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this scenario (mimicking the behaviour of entering observation to Agena AI Modeller).
 
 The observation is defined with the mandatory input parameters:
 * `node` = `Node$id` of the observed node
@@ -352,6 +354,8 @@ The observation is defined with the mandatory input parameters:
 
 ### 4.3.11 `remove_observation(scenario = NULL, node, network)`
 
+A method to remove a specific observation from the model. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
+
 ### 4.3.12 `clear_scenario_observations(scenario)`
 
 A method to clear all observations in a specific scenario in the model.
@@ -362,7 +366,7 @@ A method to clear all observations defined in a model. This function removes all
 
 ### 4.3.14 `to_cmpx(filename = NULL, settings = NULL)`
 
-A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by AgenaRisk.
+A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by Agena AI.
 
 If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
@@ -382,13 +386,17 @@ to_cmpx(settings = list(parameterLearningLogging = TRUE/FALSE,
 
 A method to export the `Model` to a .json file instead of .cmpx. See `to_cmpx()` description above for all the details.
 
-## 4.4 Other RAgena Functions
+### 4.3.16 `get_results()`
 
-RAgena environment provides certain other functions outside the class methods.
+A method to generate a .csv file based on the calculation results a `Model` contains. See [Section 8](#8-agena-ai-cloud-with-r-agena) for details.
+
+## 4.4 Other R-Agena Functions
+
+R-Agena environment provides certain other functions outside the class methods.
 
 ### 4.4.1 `from_cmpx(modelPath = "/path/to/model/file.cmpx")`
 
-This is the cmpx parser function to import a .cmpx file and create R objects based on the model in the file. To see its use, see [Section 5](#5-importing-a-model-from-cmpx) and [Section 10](#10-ragena-use-case-examples).
+This is the cmpx parser function to import a .cmpx file and create R objects based on the model in the file. To see its use, see [Section 5](#5-importing-a-model-from-cmpx) and [Section 9](#9-r-agena-use-case-examples).
 
 ### 4.4.2 `create_batch_cases(inputModel, inputData)`
 
@@ -398,9 +406,38 @@ This function takes an R `Model` object (`inputModel`) and an input CSV file (`i
 
 This function creates an empty CSV file with the correct format so that it can be filled in and used for `create_batch_bases()`.
 
+### 4.4.4 `create_sensitivity_config(...)`
+
+A function to create a sensitivity configuration object if a sensitivity analysis request will be sent to Agena AI Cloud servers. Its parameters are:
+
+* `target` = target node ID for the analysis
+* `sensitivity_nodes` = a list of sensitivity node IDs
+* (optional) `network` = ID of the network to perform analysis on. If missing, the first network in the model is used
+* (optional) `dataset` = ID of the dataSet (scenario) to use for analysis
+* (optional) `report_settings` = settings for the sensitivity analysis report. A named list with the following fields:
+    * `summaryStats` (a list with the following fields)
+        * mean
+        * median
+        * variance
+        * standardDeviation
+        * upperPercentile
+        * lowerPercentile
+    * `sumsLowerPercentileValue` (set the reported lower percentile value.
+Default is 25)
+    * `sumsUpperPercentileValue` (set the reported upper percentile value.
+Default is 75)
+    * `sensLowerPercentileValue` (lower percentile value to limit sensitivity node data by. Default is 0)
+    * `sensUpperPercentileValue` (upper percentile value to limit sensitivity node data by. Default is 100)
+
+For the use of the function, see [Section 8](#8-agena-ai-cloud-with-r-agena).
+
+## 4.5 Agena AI Cloud Related Functions
+
+R-Agena environment allows users to send their models to Agena AI Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agena-ai-cloud-with-r-agena).
+
 # 5. Importing a Model from .cmpx
 
-To use RAgena environment, you can create a new R script and source/import the base RAgena.R code with:
+To use R-Agena environment, you can create a new R script and source/import the base RAgena.R code with:
 
 ```r
 source("RAgena.R")
@@ -408,10 +445,10 @@ source("RAgena.R")
 # or source("full/path/to/RAgena.R") if the base R code is not in the same working directory as the current R script
 ```
 
-This will import all the RAgena classes and functions to be used in the current R script.
+This will import all the R-Agena classes and functions to be used in the current R script.
 
 
-To import an existing AgenaRisk model (from a .cmpx file), use the `from_cmpx()` function:
+To import an existing Agena AI model (from a .cmpx file), use the `from_cmpx()` function:
 
 ```r
 new_model <- from_cmpx("/path/to/model/file.cmpx")
@@ -447,9 +484,9 @@ Once the R model is created from the imported .cmpx file, the `Model` object as 
 
 # 6. Creating and Modifying a Model in R
 
-It is possible to create an AgenaRisk model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used with AgenaRisk calculations and inference. In this section, creating a model is shown step by step, starting with nodes.
+It is possible to create an Agena AI model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used with Agena AI calculations and inference, locally or on Agena AI Cloud. In this section, creating a model is shown step by step, starting with nodes.
 
-In an R script where base RAgena.R code is sourced, you can create and modify BNs in R. As a reminder, to source/import the base code:
+In an R script where base R-Agena.R code is sourced, you can create and modify BNs in R. As a reminder, to source/import the base code:
 
 ```r
 source("RAgena.R")
@@ -586,7 +623,7 @@ Assume that `node_one` and `node_two` are the parents of `node_three` (how to ad
 </tbody>
 </table>
 
-There are two ways to order the values in this table for the `setProbabilities()` function, using the boolean `by_rows` parameter. If you want to enter the values following the rows in AgenaRisk NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = TRUE` where each element of the list is a row of the AgenaRisk NPT:
+There are two ways to order the values in this table for the `setProbabilities()` function, using the boolean `by_rows` parameter. If you want to enter the values following the rows in Agena AI Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = TRUE` where each element of the list is a row of the Agena AI Modeller NPT:
 
 ```r
 node_three$setProbabilities(list(c(0.1, 0.2, 0.3, 0.4), c(0.4, 0.45, 0.6, 0.55), c(0.5, 0.35, 0.1, 0.05)), by_rows = TRUE)
@@ -851,7 +888,7 @@ example_model$enter_observation(scenario = "Scenario 2", node = node_three, netw
 
 ## 6.7. Exporting a Model to .cmpx or .json
 
-Once an R model is defined fully and it is ready, you can export it to a .cpmx or a .json file. The function to create these files convert the information to the correct format for AgenaRisk to understand. You can use either of the functions:
+Once an R model is defined fully and it is ready, you can export it to a .cpmx or a .json file. The function to create these files convert the information to the correct format for Agena AI to understand. You can use either of the functions:
 
 ```r
 example_model$to_json()
@@ -871,7 +908,7 @@ example_model$to_json("custom_file_name")
 
 # 7. Creating Batch Cases for a Model in R
 
-RAgena environment allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the dataset is a single case (scenario) with a set of observed values for nodes in the model. First column of the CSV file is the scenario ids which will be used to create a new risk scenario for each data row. All other columns are possible evidence variables whose headers follow the "node_id.network_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs.
+R-Agena environment allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the dataset is a single case (scenario) with a set of observed values for nodes in the model. First column of the CSV file is the scenario ids which will be used to create a new risk scenario for each data row. All other columns are possible evidence variables whose headers follow the "node_id.network_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs.
 
 An example CSV format is as below:
 
@@ -914,7 +951,7 @@ An example CSV format is as below:
 </tbody>
 </table>
 
-Once the model is defined in RAgena and the CSV file with the observations is prepared, you can use the `create_batch_cases()` function to generate scenarios for the BN:
+Once the model is defined in R-Agena and the CSV file with the observations is prepared, you can use the `create_batch_cases()` function to generate scenarios for the BN:
 
 ```r
 create_batch_cases(inputModel, inputData)
@@ -932,13 +969,73 @@ Important note: Once the function has generated the .json file with all the new 
 
 Assume that you use a model in R with two already existing scenarios: an empty default "Scenario 1" which was created with the model, and a scenario you have added "Test patient" with some observations. And you have a CSV file with 10 rows of data, whose Case column reads: "Patient 1, Patient 2, ..., Patient 10", with the set of observations for 10 patients. Once `create_batch_cases()` is used, it's going to generate a .json file for this model with all 12 scenarios, but after the use of the function, the model will still have only "Scenario 1" and "Test patient" scenarios in its dataSets.
 
-# 8. RAgena Use Case Examples
+# 8. Agena AI Cloud with R-Agena
 
-In this section, some use case examples of RAgena environment are shown. 
+You can use R-Agena environment to authenticate with Agena AI Cloud (using your existing account) and send your model files to Cloud for calculations. The connection between your local R-Agena environment and Agena AI Cloud servers is based on the `httr` package in R.
 
-## 8.1 Diet Experiment Model
+## 8.1 Authentication
 
-This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in AgenaRisk Desktop is given below:
+`login()` function is used to authenticate the user. To create an account, visit https://portal.agena.ai. Once created, you can use your credentials in R-Agena to access the servers.
+
+```r
+example_login <- login(username, password)
+```
+
+This will send a POST request to authentication server, and will return the login object (including access and refresh tokens) which will be used to authenticate further operations.
+
+## 8.2 Model Calculation
+
+`calculate()` function is used to send an R model object to Agena AI Cloud servers for calculation. The function takes the following parameters:
+
+* `input_model` is the R Model object
+* `login` is the login object created with the credentials
+* (optional) `scenario` is the name of the `scenario` that contains the set of scenarios (`$id` of one of the `dataSets` objects) if any. If the model has only one scenario with observations, scenario needs not be specified (it is also possible to send a model without any observations).
+
+Currently servers accept a single set of observations for each calculation, if the R model has multiple scenarios (set of observations), you need to specify which scenario is to be used.
+
+For example,
+
+```r
+calculate(example_model, example_login)
+```
+
+or
+
+```r
+calculate(example_model, example_login, scenario_id)
+
+```
+
+If calculation is successful, this function will update the R model (the relevant `dataSets$results` field in the model) with results of the calculation.
+
+If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file.
+
+## 8.3 Sensitivity Analysis
+
+For the sensitivity analysis, first you need to crate a sensivity configuration object, using the `create_sensitivity_config(...)` function. For example,
+
+```r
+example_sens_config <- create_sensitivity_config(
+                      target = "node_one",
+                      sensitivity_nodes = c("node_two","node_three"),
+                      report_settings = list(summaryStats = c("mean", "variance")),
+                      dataset = "scenario_id",
+                      network = "network_one")
+```
+
+Using this config object, now you can use the `sensitivity_analysis()` function to send the request to the server. For example,
+
+```r
+sensitivity_analysis(example_model, test_login, example_sens_config)
+```
+
+# 9. R-Agena Use Case Examples
+
+In this section, some use case examples of R-Agena environment are shown. 
+
+## 9.1 Diet Experiment Model
+
+This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in Agena AI Modeller is given below:
 
 ![Diet Experiment Image](/Assets/diet_image.png)
 
@@ -1072,7 +1169,7 @@ for (i in seq_along(observations)) {
 }
 ```
 
-Now the model is ready with all the information, we can export it to either a .json or a .cmpx file for AgenaRisk calculations:
+Now the model is ready with all the information, we can export it to either a .json or a .cmpx file for Agena AI calculations, either locally or on Cloud:
 
 ```r
 # Creating json or cmpx file for the model
