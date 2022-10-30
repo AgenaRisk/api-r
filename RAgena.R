@@ -1,17 +1,5 @@
 
 ### Node object as an R reference class
-#id required (unique)
-#name is same as id if not given (non unique)
-#description (non unique optional string)
-#type: ContinuousInterval, IntegerInterval, Boolean, Labelled, Ranked, DiscreteReal
-#parents: ***will be either other Node objects or other id's of other Node objects (either a list of Nodes or a list of strings)
-#simulated: boolean, in CMPX it's also NULL when FALSE
-#distr_type: Manual, Partitioned, Expression - this will decide the state of next four attributes
-#states: list of state names if Node$simulated == FALSE
-#probabilities: list of numeric values if Node$simulated == FALSE, length of the list is either # of states x # of all parent states (if distr_type manual), or it depends on the expressions/partitions
-#expressions: list of strings if Node$distr_type != "Manual", length is 1 if Node$distr_type == "Expression", length is # of partitions if Node$distr_type == "Partitioned"
-#partitions: list of parent IDs which partitioned expressions are based on if Node$distr_type == "Partitioned"
-#variables: list of variables (name and value)
 Node <- setRefClass("Node",
                     fields = list(id = "character",
                                   name = "character",
@@ -1000,7 +988,9 @@ from_cmpx <- function(modelPath){
     datasets[[i]] <- Dataset$new(id = cmpx_dataSets[[i]]$id, observations=NULL)
     
     datasets[[i]]$observations <- cmpx_dataSets[[i]]$observations
-    datasets[[i]]$results <- cmpx_dataSets[[i]]$results
+    if (!is.null(cmpx_dataSets[[i]]$results)) {
+      datasets[[i]]$results <- cmpx_dataSets[[i]]$results
+    }
   }
   
 
@@ -1291,13 +1281,6 @@ generate_cmpx <- function(inputModel, settings=NULL) {
   }
   
   
-  # networklinks_list <- list(sourceNetwork = "placeholder",
-  #                           sourceNode = "placeholder",
-  #                           targetNetwork = "placeholder",
-  #                           targetNode = "placeholder",
-  #                           type = "placeholder",
-  #                           passState = "placeholder")
-  
   model_list <- list(settings = settings_list,
                      dataSets = datasets_list,
                      networks = networks_list,
@@ -1398,3 +1381,221 @@ create_csv_template <- function(inputModel){
   
   write.table(t(colname_list),sep = ",", file = filename, row.names = FALSE, col.names = FALSE)
 }
+
+
+###### Agena AI Cloud Server Functionalities
+
+### Login and Authentication
+
+login <- function(username, password){
+  
+  auth_endpoint <- "https://auth.agena.ai/realms/cloud/protocol/openid-connect/token"
+  body <- list(client_id = "agenarisk-cloud",
+               username = username,
+               password = password,
+               grant_type = "password")
+  
+  response <- httr::POST(auth_endpoint, body = body, encode = "form")
+  login_time <- as.integer(Sys.time())
+  
+  if(response$status_code == 200) {
+    cat("Authentication to Agena AI Cloud servers is successful\n")
+    return(list(response, login_time))
+  } else {
+    cat("Authentication failed\n")
+    return(NULL)
+  }
+  
+}
+
+
+check_auth <- function(login) {
+  
+  'authentication checker function used in model operations such as calculate()'
+  #if status == 200
+  
+  login_time <- login[[2]]
+  access_duration <- httr::content(login[[1]])$expires_in
+  access_expire <- login_time + access_duration
+  
+  refresh_duration <- httr::content(login[[1]])$refresh_expires_in
+  refresh_expire <- login_time + refresh_duration
+  
+  if (as.integer(Sys.time()) < access_expire){
+    status_check <- 0 #means the login is still active
+  } 
+  if (as.integer(Sys.time()) > access_expire && as.integer(Sys.time()) < refresh_expire) {
+    status_check <- 1 #means login has expired but refresh token is still active
+  } 
+  if (as.integer(Sys.time() > refresh_expire)){
+    status_check <- 2 #means login and refresh have expired
+  }
+  
+  return(status_check)
+  
+}
+
+refresh_auth <- function(cur_login){
+  
+  'authentication by refresh token. if the login access has expired but the refresh token has not
+  at the time of calculation, authentication will be refreshed'
+
+  auth_endpoint <- "https://auth.agena.ai/realms/cloud/protocol/openid-connect/token"
+  cur_refresh_token <- httr::content(cur_login[[1]])$refresh_token
+  body <- list(client_id = "agenarisk-cloud",
+               refresh_token = cur_refresh_token,
+               grant_type = "refresh_token")
+  
+  response <- httr::POST(auth_endpoint, body = body, encode = "form")
+  login_time <- cur_login[[2]]
+  
+  return(list(response, login_time))
+}
+
+###### Calculation
+
+calc_model <- function(input_model, cur_login, scenario=NULL){
+  
+  'backend function to create POST request for model calculation'
+  
+  model_to_send <- generate_cmpx(input_model)
+  
+  if(!is.null(scenario)) {
+    for (i in seq_along(input_model$dataSets)) {
+      if (input_model$dataSets[[i]]$id == scenario) {
+        obs_num <- length(model_to_send$model$dataSets[[i]]$observations)
+        dataset_to_send <- model_to_send$model$dataSets[[i]]
+        break
+      } else {
+        obs_num <- 0
+        dataset_to_send <- NULL
+      }
+    }
+  } else {
+    obs_num <- length(model_to_send$model$dataSets[[1]]$observations)
+    if (obs_num == 0) {
+      dataset_to_send <- NULL
+    } else {
+      dataset_to_send <- model_to_send$model$dataSets[[1]]
+    }
+  }
+  
+  if (is.null(dataset_to_send) || obs_num == 0) {
+    body <- list("sync-wait" = "true",
+                 "model" = model_to_send$model)
+  } else {
+    body <- list("sync-wait" = "true",
+                 "model" = model_to_send$model,
+                 "dataSet" = dataset_to_send)
+    }
+  
+  
+  calculate_endpoint <- "https://api.agena.ai/public/v1/calculate"
+  access_token <- httr::content(cur_login[[1]])$access_token
+  
+  
+  response <- httr::POST(calculate_endpoint, body = body,
+                   httr::add_headers("Authorization" = paste("Bearer",access_token)),
+                   encode = "json", httr::accept_json())
+  
+  return(response)
+}
+
+calculate <- function(input_model, login, scenario=NULL) {
+  
+  'A function to send an input Bayesian network model to Agena AI Cloud servers.
+  Once called, the function will check authentication status, if it has not expired,
+  it will send the POST request with the model to the servers, and receive calculation
+  results to update the Bayesian network model (filling the results field with calculation results).'
+  
+  if (check_auth(login) == 2){
+    cat("Authentication expired, please log in again")
+    break
+  }
+  if (check_auth(login) == 1){
+    new_login <- refresh_auth(login)
+    response <- calc_model(input_model, new_login)
+  }
+  if (check_auth(login) == 0){
+    response <- calc_model(input_model, login)
+  }
+  
+  #this function returns a Model object with results field filled in
+  if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
+    if (!is.null(scenario)) {
+      for (i in seq_along(input_model$dataSets)) {
+        if (input_model$dataSets[[i]]$id == scenario) {
+          input_model$dataSets[[i]]$results <- httr::content(response)$results
+        }
+      }
+    } else {
+      input_model$dataSets[[1]]$results <- httr::content(response)$results
+    }
+    cat("Calculation successful, Model object now contains new results\n")
+  } else {
+    cat("Calculation failed\n")
+  }
+  
+  return(input_model)
+  
+}
+
+create_sensitivity_config <- function(target, sensitivity_nodes, dataset = NULL, network= NULL,
+                                      report_settings = NULL){
+  
+  sens_config <- list(targetNode = target,
+                      sensitivityNodes = sensitivity_nodes)
+  if(!is.null(network)) {
+    sens_config$network <- network
+  }
+  if(!is.null(dataset)) {
+    sens_config$dataSet <- dataset
+  }
+  if(!is.null(report_settings)) {
+    sens_config$report_settings <- report_settings
+  }
+  
+  return(sens_config)
+}
+
+analyse_sens <- function(input_model, cur_login, sens_config){
+  
+  sa_endpoint <- "https://api.agena.ai/public/v1/tools/sensitivity"
+  
+  body <- list("sync-wait" = "true",
+               "model" = model_to_send$model,
+               "sensitivityConfig" = sens_config)
+  
+  access_token <- httr::content(cur_login[[1]])$access_token
+  
+  response <- httr::POST(sa_endpoint, body = body,
+                         httr::add_headers("Authorization" = paste("Bearer",access_token)),
+                         encode = "json", httr::accept_json())
+  
+  return(response)
+  
+}
+
+sensitivity_analysis <- function(input_model, login, sensitivity_config){
+  
+  if (check_auth(login) == 2){
+    cat("Authentication expired, please log in again")
+    break
+  }
+  if (check_auth(login) == 1){
+    new_login <- refresh_auth(login)
+    cat(httr::content(new_login[[1]])$access_token)
+    response <- analyse_sens(input_model, new_login, sensitivity_config)
+  }
+  if (check_auth(login) == 0){
+    response <- analyse_sens(input_model, login, sensitivity_config)
+  }
+  
+  #return(response) 
+  #response will be presented in an output file
+}
+
+
+
+
+
