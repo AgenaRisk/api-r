@@ -470,9 +470,6 @@ Network <- setRefClass("Network",
                        )
 
 #Dataset object as an R reference class
-#id: id of the "scenario"
-#observations: set of observations (values / states) for all the observed Nodes in the Model
-#results: set of result values / posteriors for all the Nodes in the Model
 Dataset <- setRefClass("Dataset",
                        fields = list(id = "character",
                                 observations = "list",
@@ -489,7 +486,6 @@ Dataset <- setRefClass("Dataset",
 
 
 #Model object as an R reference class
-#One CMPX file corresponds to one R Model instance
 Model <- setRefClass("Model",
                      fields = list(id = "character",
                                    networks = "list",
@@ -708,6 +704,15 @@ Model <- setRefClass("Model",
                          } else {
                            cat("This scenario is not in the model")
                          }
+                       },
+                       get_results = function(filename=NULL){
+                         output_table <- generate_results_csv(.self)
+                         if(!is.null(filename)){
+                           file_name <- paste0(filename,".csv")
+                         } else {
+                           file_name <- paste0(.self$id,"_results.csv")
+                         }
+                         write.csv(output_table, file_name, row.names = FALSE)
                        },
                        enter_observation = function(scenario=NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE){
                          if(is.null(scenario)){
@@ -1381,6 +1386,54 @@ create_csv_template <- function(inputModel){
   
   write.table(t(colname_list),sep = ",", file = filename, row.names = FALSE, col.names = FALSE)
 }
+
+generate_results_csv <- function(inputModel){
+  
+  results <- vector(mode = "list", length = length(inputModel$dataSets))
+  
+  for (i in seq_along(inputModel$dataSets)) {
+    results[[i]] <- inputModel$dataSets[[i]]$results
+  }
+  
+  first_column <- c()
+  second_column <- c()
+  third_column <- c()
+  fourth_column <- c()
+  fifth_column <- c()
+  
+  for (i in seq_along(inputModel$dataSets)){
+    for (j in seq_along(inputModel$networks)){
+      for (k in seq_along(inputModel$networks[[j]]$nodes)){
+        for (l in seq_along(inputModel$dataSets)){
+          for (m in seq_along(results[[i]])){
+            if(inputModel$networks[[j]]$nodes[[k]]$id == results[[l]][[m]]$node &&
+               inputModel$networks[[j]]$id == results[[l]][[m]]$network){
+              for (n in seq_along(results[[l]][[m]]$resultValues)){
+                first_column <- append(first_column, inputModel$dataSets[[i]]$id)
+                second_column <- append(second_column, inputModel$networks[[j]]$id)
+                third_column <- append(third_column, inputModel$networks[[j]]$nodes[[k]]$id)
+                fourth_column <- append(fourth_column, results[[l]][[m]]$resultValues[[n]]$label)
+                fifth_column <- append(fifth_column, results[[l]][[m]]$resultValues[[n]]$value)
+              }
+            }
+             
+            
+          }
+        }
+      }}}
+  
+  output_table <- cbind(Scenario = first_column,
+                Network = second_column,
+                Node = third_column,
+                State = fourth_column,
+                Probability = fifth_column)
+  return(output_table)
+  
+}
+
+
+
+
 
 
 ###### Agena AI Cloud Server Functionalities
