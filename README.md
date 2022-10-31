@@ -1010,6 +1010,90 @@ If calculation is successful, this function will update the R model (the relevan
 
 If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file.
 
+`get_results()` is a method for the R `Model` objects, and it creates a .csv output with all calculated marginal posterior probabilities in the model. To use the function,
+
+```r
+example_model$get_results()
+```
+
+or with a custom file name:
+
+```r
+example_model$get_results("example_output_file")
+```
+
+This will generate a .csv file with the following format:
+
+<table>
+<thead>
+  <tr>
+    <th>Scenario</th>
+    <th>Network</th>
+    <th>Node</th>
+    <th>State</th>
+    <th>Probability</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 1</td>
+    <td>State 1</td>
+    <td>0.2</td>
+  </tr>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 1</td>
+    <td>State 2</td>
+    <td>0.3</td>
+  </tr>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 1</td>
+    <td>State 3</td>
+    <td>0.5</td>
+  </tr>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 2</td>
+    <td>State 1</td>
+    <td>0.3</td>
+  </tr>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 2</td>
+    <td>State 2</td>
+    <td>0.7</td>
+  </tr>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 1</td>
+    <td>0.1</td>
+  </tr>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 2</td>
+    <td>0.8</td>
+  </tr>
+  <tr>
+    <td>Scenario 1</td>
+    <td>Network 1</td>
+    <td>Node 3</td>
+    <td>State 3</td>
+    <td>0.1</td>
+  </tr>
+</tbody>
+</table>
+
 ## 8.3 Sensitivity Analysis
 
 For the sensitivity analysis, first you need to crate a sensivity configuration object, using the `create_sensitivity_config(...)` function. For example,
