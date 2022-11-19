@@ -757,7 +757,7 @@ Model <- setRefClass("Model",
                            if(length(dataSets[[1]]$observations)>0){
                              for (i in seq_along(dataSets[[1]]$observations)){
                                if(node == dataSets[[1]]$observations[[i]]$node && network == dataSets[[1]]$observations[[i]]$network){
-                                 dataSets[[1]]$observations[[i]]$entries <<- new_obs$entries[[1]]
+                                 dataSets[[1]]$observations[[i]]$entries <<- new_obs$entries[1]
                                  exist_check <- 1
                                }
                              }
@@ -782,7 +782,8 @@ Model <- setRefClass("Model",
                                for (i in 1:obs_num){
                                  new_obs$entries[[i]] <- list(weight = as.numeric(value[2*i]), value = value[2*i-1])
                                }
-                             }                           } else {
+                             }                           
+                             } else {
                              new_obs <- list(node=node,
                                              network = network,
                                              constantName = value,
@@ -814,7 +815,7 @@ Model <- setRefClass("Model",
                                if(length(dataSets[[i]]$observations)>0){
                                  for (j in seq_along(dataSets[[i]]$observations)){
                                    if(node == dataSets[[i]]$observations[[j]]$node && network == dataSets[[i]]$observations[[j]]$network){
-                                     dataSets[[i]]$observations[[j]]$entries <<- new_obs$entries[[1]]
+                                     dataSets[[i]]$observations[[j]]$entries <<- new_obs$entries[1]
                                      exist_check <- 1
                                    }
                                  }
@@ -828,6 +829,7 @@ Model <- setRefClass("Model",
 
                              }
                            }
+                           
                          }
                        },
                        remove_observation = function(scenario=NULL, node, network){
