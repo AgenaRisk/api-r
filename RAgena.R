@@ -675,10 +675,10 @@ Model <- setRefClass("Model",
                        remove_all_network_links = function(){
                          networkLinks <<- list()
                        },
-                       create_scenario = function(id){
+                       create_dataSet = function(id){
                          dataSets <<- append(dataSets,Dataset$new(id=id, observations=NULL))
                        },
-                       get_scenarios = function(){
+                       get_dataSets = function(){
                          scenList <- c()
                          if (length(.self$dataSets)>0) {
                            for (i in seq_along(.self$dataSets)) {
@@ -691,18 +691,18 @@ Model <- setRefClass("Model",
                          return(scenList)
                          
                        },
-                       remove_scenario = function(oldScenario){
-                         if (oldScenario %in% .self$get_scenarios()) {
+                       remove_dataSet = function(olddataSet){
+                         if (olddataSet %in% .self$get_dataSets()) {
                            for (i in seq_along(.self$dataSets)) {
-                             if (oldScenario == .self$dataSets[[i]]$id) {
+                             if (olddataSet == .self$dataSets[[i]]$id) {
                                dataSets <<- dataSets[-i]
                                break
                              }
                            }
                            
-                           cat(oldScenario, "is successfully removed from the model's scenarios.")
+                           cat(olddataSet, "is successfully removed from the model's dataSets")
                          } else {
-                           cat("This scenario is not in the model")
+                           cat("This dataSet is not in the model")
                          }
                        },
                        get_results = function(filename=NULL){
@@ -714,8 +714,8 @@ Model <- setRefClass("Model",
                          }
                          write.csv(output_table, file_name, row.names = FALSE)
                        },
-                       enter_observation = function(scenario=NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE){
-                         if(is.null(scenario)){
+                       enter_observation = function(dataSet=NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE){
+                         if(is.null(dataSet)){
                            if(!variable_input){
                              new_obs <- list(node=node,
                                              network = network,
@@ -809,7 +809,7 @@ Model <- setRefClass("Model",
                            
                            
                            for (i in seq_along(dataSets)){
-                             if(scenario == dataSets[[i]]$id){
+                             if(dataSet == dataSets[[i]]$id){
                                
                                exist_check <- 0
                                if(length(dataSets[[i]]$observations)>0){
@@ -832,8 +832,8 @@ Model <- setRefClass("Model",
                            
                          }
                        },
-                       remove_observation = function(scenario=NULL, node, network){
-                         if(is.null(scenario)){
+                       remove_observation = function(dataSet=NULL, node, network){
+                         if(is.null(dataSet)){
                            
                            for (i in seq_along(dataSets[[1]]$observations)){
                              if(node == dataSets[[1]]$observations[[i]]$node && network == dataSets[[1]]$observations[[i]]$network){
@@ -843,7 +843,7 @@ Model <- setRefClass("Model",
                            }
                          } else {
                            for (i in seq_along(dataSets)){
-                             if(scenario == dataSets[[i]]$id){
+                             if(dataSet == dataSets[[i]]$id){
                                for (j in seq_along(dataSets[[i]]$observations)){
                                  if(node == dataSets[[i]]$observations[[j]]$node && network == dataSets[[i]]$observations[[j]]$network){
                                    dataSets[[i]]$observations <<- dataSets[[i]]$observations[-j]
@@ -853,9 +853,9 @@ Model <- setRefClass("Model",
                                }}
                          }
                        },
-                       clear_scenario_observations = function(scenario){
+                       clear_dataSet_observations = function(dataSet){
                          for (i in seq_along(.self$dataSets)){
-                           if(scenario == .self$dataSets[[i]]$id){
+                           if(dataSet == .self$dataSets[[i]]$id){
                              dataSets[[i]]$observations <<- list()
                            }}
                        },
@@ -1312,9 +1312,9 @@ create_batch_cases <- function(inputModel, inputData){
 
   for (i in seq_along(inputTable)){
     temp_id <- as.character(as.character(inputTable[i,][[1]]))
-    inputModel$create_scenario(id = temp_id)
+    inputModel$create_dataSet(id = temp_id)
     for (j in seq_along(col_headers)){
-      inputModel$enter_observation(scenario = temp_id,
+      inputModel$enter_observation(dataSet = temp_id,
                                    node = obs_nodes[j], network = obs_networks[j], 
                                    value = inputTable[i,][[j+1]])
     }
@@ -1326,7 +1326,7 @@ create_batch_cases <- function(inputModel, inputData){
   
   for (i in seq_along(inputTable)){
     temp_id <- as.character(as.character(inputTable[i,][[1]]))
-    inputModel$remove_scenario(temp_id)
+    inputModel$remove_dataSet(temp_id)
   }
   
 }
@@ -1509,15 +1509,15 @@ refresh_auth <- function(cur_login){
 
 ###### Calculation
 
-calc_model <- function(input_model, cur_login, scenario=NULL){
+calc_model <- function(input_model, cur_login, dataSet=NULL){
   
   'backend function to create POST request for model calculation'
   
   model_to_send <- generate_cmpx(input_model)
   
-  if(!is.null(scenario)) {
+  if(!is.null(dataSet)) {
     for (i in seq_along(input_model$dataSets)) {
-      if (input_model$dataSets[[i]]$id == scenario) {
+      if (input_model$dataSets[[i]]$id == dataSet) {
         obs_num <- length(model_to_send$model$dataSets[[i]]$observations)
         dataset_to_send <- model_to_send$model$dataSets[[i]]
         break
@@ -1556,7 +1556,7 @@ calc_model <- function(input_model, cur_login, scenario=NULL){
   return(response)
 }
 
-calculate <- function(input_model, login, scenario=NULL) {
+calculate <- function(input_model, login, dataSet=NULL) {
   
   'A function to send an input Bayesian network model to Agena AI Cloud servers.
   Once called, the function will check authentication status, if it has not expired,
@@ -1577,9 +1577,9 @@ calculate <- function(input_model, login, scenario=NULL) {
   
   #this function returns a Model object with results field filled in
   if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
-    if (!is.null(scenario)) {
+    if (!is.null(dataSet)) {
       for (i in seq_along(input_model$dataSets)) {
-        if (input_model$dataSets[[i]]$id == scenario) {
+        if (input_model$dataSets[[i]]$id == dataSet) {
           input_model$dataSets[[i]]$results <- httr::content(response)$results
         }
       }
