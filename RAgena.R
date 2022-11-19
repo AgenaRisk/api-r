@@ -490,7 +490,8 @@ Model <- setRefClass("Model",
                      fields = list(id = "character",
                                    networks = "list",
                                    dataSets = "list",
-                                   networkLinks = "list"
+                                   networkLinks = "list",
+                                   settings = "list"
                                    ),
                      methods = list(
                        show = function(){
@@ -500,7 +501,19 @@ Model <- setRefClass("Model",
                            cat("\n-",nt$id)
                          }
                        },
-                       initialize = function(id=NULL, networks, from_cmpx=FALSE, dataSets = NULL, networkLinks = NULL){
+                       initialize = function(id=NULL, networks, from_cmpx=FALSE, dataSets = NULL, networkLinks = NULL, settings = NULL){
+                         if(is.null(settings)){
+                           .self$settings <<- list(parameterLearningLogging = FALSE,
+                                                   discreteTails = FALSE,
+                                                   sampleSizeRanked = 5,
+                                                   convergence = 0.001,
+                                                   simulationLogging = FALSE,
+                                                   iterations = 50,
+                                                   tolerance = 1)
+                         } else {
+                           .self$settings <<- settings
+                         }
+                         
                          if(is.null(id)){
                            .self$id <<- paste(networks[[1]]$id,"Model")
                          } else{
@@ -865,14 +878,23 @@ Model <- setRefClass("Model",
                            dataSets[[i]]$observations <<- list()
                          }
                        },
-                       to_cmpx = function(filename=NULL, settings=NULL){
-                         if(is.null(settings)){
+                       change_settings = function(settings){
+                         .self$settings <<- settings
+                         cat("Model settings updated")
+                       },
+                       default_settings = function(){
+                         .self$settings <<- list(parameterLearningLogging = FALSE,
+                                                 discreteTails = FALSE,
+                                                 sampleSizeRanked = 5,
+                                                 convergence = 0.001,
+                                                 simulationLogging = FALSE,
+                                                 iterations = 50,
+                                                 tolerance = 1)
+                         cat("Model settings reset to default values")
+                       },
+                       to_cmpx = function(filename=NULL){
                            json_list <- generate_cmpx(.self)
-                         } else {
-                           json_list <- generate_cmpx(.self, settings = settings)
-                         }
-                         
-                         json_object <- rjson::toJSON(json_list)
+                           json_object <- rjson::toJSON(json_list)
                          
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".cmpx")
@@ -881,14 +903,9 @@ Model <- setRefClass("Model",
                          }
                          write(json_object,file_name)
                        },
-                       to_json = function(filename=NULL, settings=NULL){
-                         if(is.null(settings)){
+                       to_json = function(filename=NULL){
                            json_list <- generate_cmpx(.self)
-                         } else {
-                           json_list <- generate_cmpx(.self, settings = settings)
-                         }
-                         
-                         json_object <- rjson::toJSON(json_list)
+                           json_object <- rjson::toJSON(json_list)
                          
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".json")
@@ -909,8 +926,9 @@ from_cmpx <- function(modelPath){
   cmpx_model <- cmpx_input$model
   cmpx_networks <- cmpx_model$networks
   cmpx_dataSets <- cmpx_model$dataSets 
-  cmpx_networkLinks <- cmpx_model$links  #currently unused parts of CMPX: cmpx_model$settings, cmpx_model$riskTable, cmpx_model$graphics
-
+  cmpx_networkLinks <- cmpx_model$links 
+  cmpx_settings <- cmpx_model$settings
+  
   #creating empty lists for Network and Node objects with the correct number of Networks in the CMPX model
   networks <- vector(mode = "list",length = length(cmpx_networks))
   nodes <- vector(mode = "list",length = length(cmpx_networks))
@@ -1004,7 +1022,8 @@ from_cmpx <- function(modelPath){
   outputModel <- Model$new(from_cmpx=TRUE,
                            networks = networks,
                            networkLinks = cmpx_networkLinks,
-                           dataSets = datasets)
+                           dataSets = datasets,
+                           settings = cmpx_settings)
   
   return(outputModel)
 }
@@ -1014,21 +1033,10 @@ from_cmpx <- function(modelPath){
 
 
 
-generate_cmpx <- function(inputModel, settings=NULL) {
+generate_cmpx <- function(inputModel) {
   
-  if(is.null(settings)){
-    settings_list <- list(parameterLearningLogging = FALSE,
-                          discreteTails = FALSE,
-                          sampleSizeRanked = 5,
-                          convergence = 0.001,
-                          simulationLogging = FALSE,
-                          iterations = 50,
-                          tolerance = 1)
-  } else {
-    settings_list <- settings
-  }
+  settings_list <- inputModel$settings
   
-
   #creating empty lists and sublists with correct length to be filled in later
   networks_list <- vector(mode = "list", length = length(inputModel$networks))
   

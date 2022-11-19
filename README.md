@@ -178,6 +178,20 @@ If the `Model` has multiple networks, it is possible to have links between these
 
 To see how to create these links, see `add_network_link()` function later in this document.
 
+## 3.4.5 `settings`
+
+`Model` settings for calculations. It includes the following fields (the values in parantheses are the defaults if settings are not specified for a model):
+
+* parameterLearningLogging (FALSE)
+* discreteTails (FALSE)
+* sampleSizeRanked (5)
+* convergence (0.001)
+* simulationLogging (FALSE)
+* iterations (50)
+* tolerance (1)
+
+Model settings can be provided when creating a new model, if not provided the model will come with the default settings. Default settings can be changed later on (with the method `$change_settings()`), or model settings can be reset back to default values (with the method `$default_settings()`). See the correct input parameter format for these functions in the following section.
+
 # 4. Class Methods
 
 The `Node`, `Network`, and `Model` objects have their own respective methods to help their definition and manipulate their fields. The R class methods are used with the `$` sign following an instance of the class. For example,
@@ -279,7 +293,7 @@ A method to plot the graphical structure of a BN network.
 
 ## 4.3 `Model` methods
 
-A `Model` object consists of networks, network links, and datasets (and default settings). A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty dataset (scenario) called "Scenario 1". Following methods can be used to modify `Model` objects: 
+A `Model` object consists of networks, network links, datasets, and settings. A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty dataset (scenario) called "Scenario 1". Following methods can be used to modify `Model` objects: 
 
 ### 4.3.1 `add_network(newNetwork)`
 
@@ -364,29 +378,46 @@ A method to clear all observations in a specific dataset (scenario) in the model
 
 A method to clear all observations defined in a model. This function removes all observations from all datasets (scenarios).
 
-### 4.3.14 `to_cmpx(filename = NULL, settings = NULL)`
+### 4.3.14 `change_settings(settings)`
+
+A method to change model settings. The input parameter `settings` must be a list with the correctly named elements, for example:
+
+```r
+new_settings <- list(parameterLearningLogging = TRUE, 
+                    discreteTails = FALSE, 
+                    sampleSizeRanked = 10, 
+                    convergence = 0.05, 
+                    simulationLogging = TRUE, 
+                    iterations = 100, 
+                    tolerance = 1)
+
+example_model$change_settings(new_settings)
+```
+
+### 4.3.15 `default_settings()`
+
+A method to reset model settings back to default values. The default values for model settings are:
+
+* parameterLearningLogging = FALSE
+* discreteTails = FALSE
+* sampleSizeRanked = 5
+* convergence = 0.001
+* simulationLogging = FALSE
+* iterations = 50
+* tolerance = 1
+
+
+### 4.3.16 `to_cmpx(filename = NULL)`
 
 A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by agena.ai.
 
 If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
-If the input parameter `settings` is not specified, it will use the default model calculation settings. To enter custom settings, use the following format for the parameter:
-
-```r
-to_cmpx(settings = list(parameterLearningLogging = TRUE/FALSE, 
-                        discreteTails = TRUE/FALSE,
-                        sampleSizeRanked = numeric_value,
-                        convergence = numeric_value,
-                        simulationLogging = TRUE/FALSE,
-                        iterations = numeric_value,
-                        tolerance = numeric_value))
-```
-
-### 4.3.15 `to_json(filename = NULL, settings = NULL)`
+### 4.3.17 `to_json(filename = NULL)`
 
 A method to export the `Model` to a .json file instead of .cmpx. See `to_cmpx()` description above for all the details.
 
-### 4.3.16 `get_results()`
+### 4.3.18 `get_results()`
 
 A method to generate a .csv file based on the calculation results a `Model` contains. See [Section 8](#8-agena-ai-cloud-with-r-agena) for details.
 
