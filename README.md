@@ -7,12 +7,12 @@
 * [Importing a Model from .cmpx](#5-importing-a-model-from-cmpx)
 * [Creating and Modifying a Model in R](#6-creating-and-modifying-a-model-in-r)
 * [Creating Batch Cases for a Model in R](#7-creating-batch-cases-for-a-model-in-r)
-* [Agena AI Cloud with R-Agena](#8-agena-ai-cloud-with-r-agena)
+* [Agena.ai Cloud with R-Agena](#8-agenaai-cloud-with-r-agena)
 * [R-Agena Use Case Examples](#9-r-agena-use-case-examples)
 
 # 1. Description
 
-R-Agena is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to Agena AI Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with Agena AI Cloud for individual or batch model calculations.
+R-Agena is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with agena.ai Cloud for individual or batch model calculations.
 
 # 2. Prerequisites
 
@@ -36,7 +36,7 @@ BiocManager::install("Rgraphviz")
 
 # 3. Structure of R-Agena Classes
 
-The Bayesian networks (BNs) in the R environment are represented with several objects: `Node`, `Network`, `DataSet`, and `Model`. These R objects generally follow their equivalents defined in Agena AI models.
+The Bayesian networks (BNs) in the R environment are represented with several objects: `Node`, `Network`, `DataSet`, and `Model`. These R objects generally follow their equivalents defined in agena.ai models.
 
 ## 3.1 `Node` objects
 
@@ -44,7 +44,7 @@ These represent the nodes in a BN. The fields that define a `Node` object are as
 
 ### 3.1.1 `id`
 
-Mandatory field to create a new `Node` object. This is the unique identifier of Agena AI model nodes.
+Mandatory field to create a new `Node` object. This is the unique identifier of agena.ai model nodes.
 
 ### 3.1.2 `name`
 
@@ -71,7 +71,7 @@ If it's not specified when creating a new node, the new node is "Boolean" by def
 
 Other `Node` objects can be pointed as parents of a `Node` object. It is not recommended to modify this field manually, to add parents to a node, see the function `addParent()`.
 
-Something to keep in mind: the parent-child relationship information is stored at `Node` level in R environment thanks to this field, as opposed to the separate `links` field of a .cmpx/.json file for the Agena AI models. When importing or exporting .cmpx files you do not need to think about this difference as the cmpx parser and writer functions handle the correct formats. This difference allows adding and removing `Node` objects as parents 
+Something to keep in mind: the parent-child relationship information is stored at `Node` level in R environment thanks to this field, as opposed to the separate `links` field of a .cmpx/.json file for the agena.ai models. When importing or exporting .cmpx files you do not need to think about this difference as the cmpx parser and writer functions handle the correct formats. This difference allows adding and removing `Node` objects as parents 
 
 ### 3.1.6 `simulated`
 
@@ -106,7 +106,7 @@ If the table type (`distr_type`) of the node is "Expression" or "Partitioned", t
 * If the node's table type is "Expression", the `expressions` field will have a single expression (a single character string).
 * If the node's table type is "Partitioned", the `expressions` field will have a list of as many expressions as the number of parent node states on which the expression is partitioned.
 
-To see how to set the expressions for a node, see `setExpressions()` function.
+To see how to set the expressions for a node, see `set_expressions()` function.
 
 ### 3.1.11 `partitions`
 
@@ -114,7 +114,7 @@ If the table type (`distr_type`) of the node is "Partitioned", in addition to th
 
 ### 3.1.12 `variables`
 
-The node variables are called constants on Agena AI Modeller. This field, if specified, sets the constant value for the node observations.
+The node variables are called constants on agena.ai Modeller. This field, if specified, sets the constant value for the node observations.
 
 ## 3.2 `Network` objects 
 
@@ -138,27 +138,27 @@ Description, optional. If not specified, the string "New Network" is assigned to
 
 A list of `Node` objects which are in the network. These `Node` objects have their own fields which define them as explained above in this document.
 
-Note that `Network` objects do not have a `links` field unlike the Agena AI models. As explained in `Node$parents` section above, this information is stored in `Node` objects in the R environment. When importing a .cmpx model, the information in `links` field is used to populate `Node$parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node$parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
+Note that `Network` objects do not have a `links` field unlike the agena.ai models. As explained in `Node$parents` section above, this information is stored in `Node` objects in the R environment. When importing a .cmpx model, the information in `links` field is used to populate `Node$parents` fields for each node. Similarly, when exporting to a .cmpx/.json file, the parent-child information in `Node$parents` field is used to create the `links` field of the `Network` field of the .cmpx/.json.
 
 ## 3.3 `DataSet` objects 
 
-These represent the set of observations in a BN. A `Model` can have multiple `DataSet` objects in its `dataSets` field.  When a new `Model` is created, it always comes with a default `DataSet` object with the `id` "Scenario 1" and with blank observations. It is possible to add more scenarios with their `id`s. Each `DataSet` object under a `Model` can be called a new "scenario".
+These represent the set of observations in a BN. A `Model` can have multiple `DataSet` objects in its `dataSets` field.  When a new `Model` is created, it always comes with a default `DataSet` object with the `id` "Scenario 1" and with blank observations. It is possible to add more datasets (scenarios) with their `id`s. Each `DataSet` object under a `Model` can be called a new "scenario".
 
 ### 3.3.1 `id`
 
-Id of the scenario.
+Id of the dataset (scenario).
 
 ### 3.3.2 `observations`
 
-Under each scenario, observations for all the observed nodes in all the networks of the model (in terms of their states or values) are listed. If it's hard evidence, observation for a node will have a single value with the weight of 1. If a node in the model has a value in its `variable` field, this value will be passed onto the scenario with the weight of 1.
+Under each dataset (scenario), observations for all the observed nodes in all the networks of the model (in terms of their states or values) are listed. If it's hard evidence, observation for a node will have a single value with the weight of 1. If a node in the model has a value in its `variable` field, this value will be passed onto the dataset (scenario) with the weight of 1.
 
 ### 3.3.3 `results`
 
-This field is defined only for when a .cmpx model with calculations is imported. When creating a new BN in the R environment, this field is not created or filled in. The `results` field stores the posterior probability and inference results upon model calculation on Agena AI Cloud.
+This field is defined only for when a .cmpx model with calculations is imported. When creating a new BN in the R environment, this field is not created or filled in. The `results` field stores the posterior probability and inference results upon model calculation on agena.ai Cloud.
 
 ## 3.4 `Model` objects
 
-These represent the overall BN. A single .cmpx file corresponds to a singe `Model`. A BN model can have multiple networks with their own nodes, links between these networks, and datasets (observations/scenarios). 
+These represent the overall BN. A single .cmpx file corresponds to a singe `Model`. A BN model can have multiple networks with their own nodes, links between these networks, and datasets. 
 
 ## 3.4.1 `id`
 
@@ -170,13 +170,13 @@ A list of all the `Network` objects that make up the model. This field is mandat
 
 ## 3.4.3 `dataSets`
 
-Optional field for `DataSet` objects (scenarios). When creating a new `Model`, it is possible to use predefined scenarios as long as the `DataSet$observations` field of these scenarios have matching `id`s with the nodes in the model. If none is specified, by default a new `Model` object will come with an empty scenario called "Scenario 1".
+Optional field for `DataSet` objects. When creating a new `Model`, it is possible to use predefined scenarios as long as their `DataSet$observations` field has matching `id`s with the nodes in the model. If none is specified, by default a new `Model` object will come with an empty dataset called "Scenario 1".
 
 ## 3.4.4 `networkLinks`
 
-If the `Model` has multiple networks, it is possible to have links between these networks, following the Agena AI model networkLinks format.
+If the `Model` has multiple networks, it is possible to have links between these networks, following the agena.ai model networkLinks format.
 
-To see how to create these links, see `addNetworkLink()` function later in this document.
+To see how to create these links, see `add_network_link()` function later in this document.
 
 # 4. Class Methods
 
@@ -195,7 +195,7 @@ example_network$remove_node(exampleNode)
 or
 
 ```r
-example_model$create_scenario(exampleScenario)
+example_model$create_dataSet(exampleScenario)
 ```
 
 ## 4.1 `Node` methods
@@ -218,7 +218,7 @@ These are the methods `Node` objects can call for various purposes with their in
 
 ### 4.1.1 `add_parent(newParent)`
 
-The method to add a new parent to a node. Equivalent of adding an arc between two nodes on Agena AI Modeller. The input parameter `newParent` is another `Node` object. If `newParent` is already a parent for the node, the function does not update the `parents` field of the node.
+The method to add a new parent to a node. Equivalent of adding an arc between two nodes on agena.ai Modeller. The input parameter `newParent` is another `Node` object. If `newParent` is already a parent for the node, the function does not update the `parents` field of the node.
 
 When a new parent is added to a node, its NPT values and expressions are reset/resized accordingly. 
 
@@ -226,7 +226,7 @@ There is also a method called `addParent_byID(newParentID, varList)`, however, t
 
 ### 4.1.2 `remove_parent(oldParent)` 
 
-The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on Agena AI Modeller. The input parameter `oldParent` is a `Node` object which has already been added to the `parents` field of the node.
+The method to remove one of the existing parents of a node. Equivalent of removing the arc between two nodes on agena.ai Modeller. The input parameter `oldParent` is a `Node` object which has already been added to the `parents` field of the node.
 
 When an existing parent is removed from a node, its NPT values and expressions are reset/resized accordingly.
 
@@ -257,7 +257,7 @@ A method to remove one of the existing variables (constants) from a node, using 
 
 ## 4.2 `Network` methods
 
-As described above, `Node` objects can be created and manipulated outside a network in the R environment. Once they are defined, they can be added to a `Network` object. Alternatively, a `Network` object can be created first and then its nodes can be specified. The R environment gives the user freedom, which is different from Agena AI Modeller where it is not possible to have a node completely outside any network. Once a `Network` object is created, with or without nodes, the following methods can be used to modify and manipulate the object.
+As described above, `Node` objects can be created and manipulated outside a network in the R environment. Once they are defined, they can be added to a `Network` object. Alternatively, a `Network` object can be created first and then its nodes can be specified. The R environment gives the user freedom, which is different from agena.ai Modeller where it is not possible to have a node completely outside any network. Once a `Network` object is created, with or without nodes, the following methods can be used to modify and manipulate the object.
 
 ### 4.2.1 `add_node(newNode)`
 
@@ -279,7 +279,7 @@ A method to plot the graphical structure of a BN network.
 
 ## 4.3 `Model` methods
 
-A `Model` object consists of networks, network links, and datasets (and default settings). A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty scenario called "Scenario 1". Following methods can be used to modify `Model` objects: 
+A `Model` object consists of networks, network links, and datasets (and default settings). A new `Model` object can be created with a network (or multiple networks). By default, it is created with a single empty dataset (scenario) called "Scenario 1". Following methods can be used to modify `Model` objects: 
 
 ### 4.3.1 `add_network(newNetwork)`
 
@@ -326,21 +326,21 @@ A method to remove network links, given the `id`s of the source and target nodes
 
 A method to remove all existing network links in a model.
 
-### 4.3.7 `create_scenario(id)`
+### 4.3.7 `create_dataSet(id)`
 
 It is possible to add multiple scenarios to a model. These scenarios are new `DataSet` objects added to the `dataSets` field of a model. Initially these scenarios have no observations and are only defined by their `id`s. The scenarios are populated with the `enter_observation()` function.
 
-### 4.3.8 `remove_scenario(oldScenario)`
+### 4.3.8 `remove_dataSet(olddataSet)`
 
-A method to remove an existing scenario from the model. Input parameter `oldScenario` is the string which is the `id` of a scenario (`dataSet` object).
+A method to remove an existing scenario from the model. Input parameter `olddataSet` is the string which is the `id` of a dataset (scenario).
 
-### 4.3.9 `get_scenarios()`
+### 4.3.9 `get_dataSets()`
 
 A method to list the `id`s of all existing scenarios in a model.
 
-### 4.3.10 `enter_observation(scenario = NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE)`
+### 4.3.10 `enter_observation(dataSet = NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE)`
 
-A method to enter observation to a model. To enter the observation to a specific scenario, the scenario id must be given as the input parameter `scenario`. If `scenario` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra scenarios created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this scenario (mimicking the behaviour of entering observation to Agena AI Modeller).
+A method to enter observation to a model. To enter the observation to a specific dataset (scenario), the dataset id must be given as the input parameter `dateSet`. If `dataSet` is left NULL, the entered observation will by default go to "Scenario 1". This means that if there is no extra datasets created for a model (which by default comes with "Scenario 1"), any observation entered will be set for this dataset (mimicking the behaviour of entering observation to agena.ai Modeller).
 
 The observation is defined with the mandatory input parameters:
 * `node` = `Node$id` of the observed node
@@ -352,21 +352,21 @@ The observation is defined with the mandatory input parameters:
 * `variable_input` = a boolean parameter, set to TRUE if the entered observation is a variable (constant) id for the node instead of an observed value
 * `soft_evidence` = a boolean parameter, set to TRUE if the entered observation is not hard evidence. Then the `value` parameter should follow `c(value_one, value_one_weight, value_two, value_two_weight, ..., value_n, value_n_weight)`
 
-### 4.3.11 `remove_observation(scenario = NULL, node, network)`
+### 4.3.11 `remove_observation(dataSet = NULL, node, network)`
 
 A method to remove a specific observation from the model. It requires the id of the node which has the observation to be removed and the id of the network the node belongs to.
 
-### 4.3.12 `clear_scenario_observations(scenario)`
+### 4.3.12 `clear_dataSet_observations(dataSet)`
 
-A method to clear all observations in a specific scenario in the model.
+A method to clear all observations in a specific dataset (scenario) in the model.
 
 ### 4.3.13 `clear_all_observations()`
 
-A method to clear all observations defined in a model. This function removes all observations from all scenarios.
+A method to clear all observations defined in a model. This function removes all observations from all datasets (scenarios).
 
 ### 4.3.14 `to_cmpx(filename = NULL, settings = NULL)`
 
-A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by Agena AI.
+A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by agena.ai.
 
 If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
@@ -400,7 +400,7 @@ This is the cmpx parser function to import a .cmpx file and create R objects bas
 
 ### 4.4.2 `create_batch_cases(inputModel, inputData)`
 
-This function takes an R `Model` object (`inputModel`) and an input CSV file (`inputData`) with observations defined in the correct format and creates a batch of scenarios for each row in the input dataset. and generates a .json file. To see its use and the correct format of the CSV file for a model's data, see [Section 7](#7-creating-batch-cases-for-a-model-in-r).
+This function takes an R `Model` object (`inputModel`) and an input CSV file (`inputData`) with observations defined in the correct format and creates a batch of datasets (scenarios) for each row in the input data and generates a .json file. To see its use and the correct format of the CSV file for a model's data, see [Section 7](#7-creating-batch-cases-for-a-model-in-r).
 
 ### 4.4.3 `create_csv_template(inputModel)`
 
@@ -408,7 +408,7 @@ This function creates an empty CSV file with the correct format so that it can b
 
 ### 4.4.4 `create_sensitivity_config(...)`
 
-A function to create a sensitivity configuration object if a sensitivity analysis request will be sent to Agena AI Cloud servers. Its parameters are:
+A function to create a sensitivity configuration object if a sensitivity analysis request will be sent to agena.ai Cloud servers. Its parameters are:
 
 * `target` = target node ID for the analysis
 * `sensitivity_nodes` = a list of sensitivity node IDs
@@ -431,9 +431,9 @@ Default is 75)
 
 For the use of the function, see [Section 8](#8-agena-ai-cloud-with-r-agena).
 
-## 4.5 Agena AI Cloud Related Functions
+## 4.5 agena.ai Cloud Related Functions
 
-R-Agena environment allows users to send their models to Agena AI Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agena-ai-cloud-with-r-agena).
+R-Agena environment allows users to send their models to agena.ai Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agena-ai-cloud-with-r-agena).
 
 # 5. Importing a Model from .cmpx
 
@@ -448,7 +448,7 @@ source("RAgena.R")
 This will import all the R-Agena classes and functions to be used in the current R script.
 
 
-To import an existing Agena AI model (from a .cmpx file), use the `from_cmpx()` function:
+To import an existing agena.ai model (from a .cmpx file), use the `from_cmpx()` function:
 
 ```r
 new_model <- from_cmpx("/path/to/model/file.cmpx")
@@ -484,7 +484,7 @@ Once the R model is created from the imported .cmpx file, the `Model` object as 
 
 # 6. Creating and Modifying a Model in R
 
-It is possible to create an Agena AI model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used with Agena AI calculations and inference, locally or on Agena AI Cloud. In this section, creating a model is shown step by step, starting with nodes.
+It is possible to create an agena.ai model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used with agena.ai calculations and inference, locally or on agena.ai Cloud. In this section, creating a model is shown step by step, starting with nodes.
 
 In an R script where base R-Agena.R code is sourced, you can create and modify BNs in R. As a reminder, to source/import the base code:
 
@@ -575,13 +575,13 @@ node_one$states <- c("Negative","Positive")
 node_one$description <- "first node we have created"
 ```
 
-Other fields can be specified with the relevant set functions. To set probability values for a node with a manual table (distr_type), you can use `setProbabilities()` function:
+Other fields can be specified with the relevant set functions. To set probability values for a node with a manual table (distr_type), you can use `set_probabilities()` function:
 
 ```r
-node_one$setProbabilities(list(0.2,0.8))
+node_one$set_probabilities(list(0.2,0.8))
 ```
 
-Note that the `setProbabilities()` function takes a `list` as input, even when the node has no parents and its NPT has only one row of probabilities. If the node has parents, the NPT will have multiple rows which should be in the input list.
+Note that the `set_probabilities()` function takes a `list` as input, even when the node has no parents and its NPT has only one row of probabilities. If the node has parents, the NPT will have multiple rows which should be in the input list.
 
 Assume that `node_one` and `node_two` are the parents of `node_three` (how to add parent nodes is illustrated later in this section). Now assume that you want `node_three` to have the following NPT:
 
@@ -623,28 +623,28 @@ Assume that `node_one` and `node_two` are the parents of `node_three` (how to ad
 </tbody>
 </table>
 
-There are two ways to order the values in this table for the `setProbabilities()` function, using the boolean `by_rows` parameter. If you want to enter the values following the rows in Agena AI Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = TRUE` where each element of the list is a row of the Agena AI Modeller NPT:
+There are two ways to order the values in this table for the `set_probabilities()` function, using the boolean `by_rows` parameter. If you want to enter the values following the rows in agena.ai Modeller NPT rather than ordering them by the combination of parent states (columns), you can use `by_rows = TRUE` where each element of the list is a row of the agena.ai Modeller NPT:
 
 ```r
-node_three$setProbabilities(list(c(0.1, 0.2, 0.3, 0.4), c(0.4, 0.45, 0.6, 0.55), c(0.5, 0.35, 0.1, 0.05)), by_rows = TRUE)
+node_three$set_probabilities(list(c(0.1, 0.2, 0.3, 0.4), c(0.4, 0.45, 0.6, 0.55), c(0.5, 0.35, 0.1, 0.05)), by_rows = TRUE)
 ```
 
 If, instead, you want to define the NPT with the probabilities that add up to 1 (conditioned on the each possible combination of parent states), you can set `by_rows = FALSE` as the following example:
 
 ```r
-node_three$setProbabilities(list(c(0.1, 0.4, 0.5), c(0.2, 0.45, 0.35), c(0.3, 0.6, 0.1), c(0.4, 0.55, 0.05)), by_rows = FALSE)
+node_three$set_probabilities(list(c(0.1, 0.4, 0.5), c(0.2, 0.45, 0.35), c(0.3, 0.6, 0.1), c(0.4, 0.55, 0.05)), by_rows = FALSE)
 ```
 
-Similarly, you can use `setExpressions()` function to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
+Similarly, you can use `set_expressions()` function to define and update expressions for the nodes without Manual NPT tables. If the node has no parents, you can add a single expression:
 
 ```r
-example_node$setExpressions("TNormal(4,1,-10,10)")
+example_node$set_expressions("TNormal(4,1,-10,10)")
 ```
 
 Or if the node has parents and the expression is partitioned on the parents:
 
 ```r
-example_node$setExpressions(c("Normal(90,10)", "Normal(110,15)", "Normal(120,30)"), partition_parents = "parent_node")
+example_node$set_expressions(c("Normal(90,10)", "Normal(110,15)", "Normal(120,30)"), partition_parents = "parent_node")
 ```
 
 Here you can see the expression is an array with three elements and the second parameter (`partition_parameters`) contains the ids of the parent nodes. Expression input has three elements based on the number of states of the parent node(s) on which the expression is partitioned.
@@ -785,16 +785,16 @@ Network$new(id, name, description, nodes)
 # the rest is optional
 ```
 
-Here clearly `nodes` field is the most important information for a network but you do not need to specify these on creation. You can choose to create an empty network and fill it in with the nodes afterwards with the use of `addNode()` function. Alternatively, if all (or some) of the nodes you will have in the network are already defined, you can pass them to the new `Network` object on creation.
+Here clearly `nodes` field is the most important information for a network but you do not need to specify these on creation. You can choose to create an empty network and fill it in with the nodes afterwards with the use of `add_node()` function. Alternatively, if all (or some) of the nodes you will have in the network are already defined, you can pass them to the new `Network` object on creation.
 
 Below is an example of network creation with the nodes added later:
 
 ```r
 network_one <- Network$new(id = "network_one")
 
-network_one$addNode(node_three)
-network_one$addNode(node_one)
-network_one$addNode(node_two)
+network_one$add_node(node_three)
+network_one$add_node(node_one)
+network_one$add_node(node_two)
 ```
 
 Notice that when node_three is added to the network, its parents are not automatically included. So if a node has parents, you need to separately add them to the network, so that later on your model will not have discrepancies.
@@ -812,13 +812,13 @@ Or you can create the network with some nodes and add more nodes later on:
 ```r
 network_three <- Network$new(id = "network_three", nodes = c(node_one, node_three))
 
-network_three$addNode(node_two)
+network_three$add_node(node_two)
 ```
 
-To remove a node from a network, you can use `removeNode()` function. Again keep in mind that removing a node does not automatically remove all of its parents from the network. For example,
+To remove a node from a network, you can use `remove_node()` function. Again keep in mind that removing a node does not automatically remove all of its parents from the network. For example,
 
 ```r
-network_three$removeNode(node_three)
+network_three$remove_node(node_three)
 ```
 
 To plot a network and see its graphical structure, you can use
@@ -844,27 +844,27 @@ For example, you can create a model with the networks defined above:
 example_model <- Model$new(networks = list(network_one))
 ```
 
-Note that even when there is only one network in the model, the input has to be a list. Networks in a model can be modified with `addNetwork()` and `removeNetwork()` functions:
+Note that even when there is only one network in the model, the input has to be a list. Networks in a model can be modified with `add_network()` and `remove_network()` functions:
 
 ```r
-example_model$addNetwork(network_two)
+example_model$add_network(network_two)
 ```
 
 ```r
-example_model$removeNetwork(network_two)
+example_model$remove_network(network_two)
 ```
 
-Network links between networks of the model can be added with the `add_networ_link()` function. For example:
+Network links between networks of the model can be added with the `add_network_link()` function. For example:
 
 ```r
 example_model$add_network_link(source_network = network_one, source_node = node_three, target_network = network_two, target_node = node_three, link_type = "Marginals")
 ```
 
-For link_type options and allowed network link rules, see [`add_network_link()` section](#434-addnetworklinksourcenetwork-sourcenode-targetnetwork-targetnode-linktype-passstate--null).
+For link_type options and allowed network link rules, see [`add_network_link()` section](#434-add_network_linksource_network-source_node-target_network-target_node-link_type-pass_state--null).
 
-When a new model is created, it comes with a single scenario (dataSet element) by default. See next section to see how to add observations to this scenario or add new scenarios.
+When a new model is created, it comes with a single dataset (scenario) by default. See next section to see how to add observations to this dataset (scenario) or add new datasets (scenarios).
 
-## 6.6 Creating Scenarios and Entering Observation
+## 6.6 Creating Datasets (Scenarios) and Entering Observation
 
 To enter observations to a Model (which by default has one single scenario), use the `enter_observation()` function. You need to specify the node (and the network it belongs to) and give the value (one of the states if it's a discrete node, a sensible numerical value if it's a continuous node):
 
@@ -872,23 +872,23 @@ To enter observations to a Model (which by default has one single scenario), use
 example_model$enter_observation(node = node_three, network = network_one, value = "High")
 ```
 
-Note that this function did not specify any scenario. If this is the case, observation is always entered to the first (default) scenario.
+Note that this function did not specify any dataset (scenario). If this is the case, observation is always entered to the first (default) scenario.
 
-You may choose to add more scenarios to the model with the `create_scenario()` function:
+You may choose to add more datasets (scenarios) to the model with the `create_dataSet()` function:
 
 ```r
-example_model$create_scenario("Scenario 2")
+example_model$create_dataSet("Scenario 2")
 ```
 
-Once added, you can enter observation to the new scenario if you specify the `scenario` parameter in the `enter_observation()` function:
+Once added, you can enter observation to the new dataset (scenario) if you specify the `dataSet` parameter in the `enter_observation()` function:
 
 ```r
-example_model$enter_observation(scenario = "Scenario 2", node = node_three, network = network_one, value = "Medium")
+example_model$enter_observation(dataSet = "Scenario 2", node = node_three, network = network_one, value = "Medium")
 ```
 
 ## 6.7. Exporting a Model to .cmpx or .json
 
-Once an R model is defined fully and it is ready, you can export it to a .cpmx or a .json file. The function to create these files convert the information to the correct format for Agena AI to understand. You can use either of the functions:
+Once an R model is defined fully and it is ready, you can export it to a .cpmx or a .json file. The function to create these files convert the information to the correct format for agena.ai to understand. You can use either of the functions:
 
 ```r
 example_model$to_json()
@@ -908,7 +908,7 @@ example_model$to_json("custom_file_name")
 
 # 7. Creating Batch Cases for a Model in R
 
-R-Agena environment allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the dataset is a single case (scenario) with a set of observed values for nodes in the model. First column of the CSV file is the scenario ids which will be used to create a new risk scenario for each data row. All other columns are possible evidence variables whose headers follow the "node_id.network_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs.
+R-Agena environment allows creation of batch cases based on a single model and multiple observation sets. Observations should be provided in a CSV file with the correct format for the model. In this CSV file, each row of the data is a single case (dataset) with a set of observed values for nodes in the model. First column of the CSV file is the dataset (scenario) ids which will be used to create a new risk scenario for each data row. All other columns are possible evidence variables whose headers follow the "node_id.network_id" format. Thus, each column represents a node in the BN and is defined by the node id and the id of the network to which it belongs.
 
 An example CSV format is as below:
 
@@ -963,15 +963,15 @@ where `inputModel` is a `Model` object and `inputData` is the path to the CSV fi
 create_batch_cases(example_model, "example_dataset.csv")
 ```
 
-This will create new scenarios for each row of the dataset in the model, fill these scenarios in with the observations using the values given in the dataset, create a new .json file for the model with all the scenarios (dataSet elements). If there are NA values in the dataset, it will not fill in any observation for that specific node in that specific scenario.
+This will create new datasets (scenarios) for each row of the dataset in the model, fill these datasets (scenarios) in with the observations using the values given in the dataset, create a new .json file for the model with all the datasets (scenarios). If there are NA values in the dataset, it will not fill in any observation for that specific node in that specific dataset (scenario).
 
-Important note: Once the function has generated the .json file with all the new scenarios, it will remove the new scenarios from the model. This function does not permanently update the model with the scenarios, it generates a .json model output with the observed scenarios for the BN. It also does not alter already existing scenarios in the `Model` object if there are any.
+Important note: Once the function has generated the .json file with all the new datasets (scenarios), it will remove the new datasets (scenarios) from the model. This function does not permanently update the model with the datasets (scenarios), it generates a .json model output with the observed datasets (scenarios) for the BN. It also does not alter already existing datasets (scenarios) in the `Model` object if there are any.
 
-Assume that you use a model in R with two already existing scenarios: an empty default "Scenario 1" which was created with the model, and a scenario you have added "Test patient" with some observations. And you have a CSV file with 10 rows of data, whose Case column reads: "Patient 1, Patient 2, ..., Patient 10", with the set of observations for 10 patients. Once `create_batch_cases()` is used, it's going to generate a .json file for this model with all 12 scenarios, but after the use of the function, the model will still have only "Scenario 1" and "Test patient" scenarios in its dataSets.
+Assume that you use a model in R with two already existing datasets: an empty default "Scenario 1" which was created with the model, and a dataset (scenario) you have added "Test patient" with some observations. And you have a CSV file with 10 rows of data, whose Case column reads: "Patient 1, Patient 2, ..., Patient 10", with the set of observations for 10 patients. Once `create_batch_cases()` is used, it's going to generate a .json file for this model with all 12 datasets (scenarios), but after the use of the function, the model will still have only "Scenario 1" and "Test patient" datasets (scenarios) in its `$dataSets` field.
 
-# 8. Agena AI Cloud with R-Agena
+# 8. agena.ai Cloud with R-Agena
 
-You can use R-Agena environment to authenticate with Agena AI Cloud (using your existing account) and send your model files to Cloud for calculations. The connection between your local R-Agena environment and Agena AI Cloud servers is based on the `httr` package in R.
+You can use R-Agena environment to authenticate with agena.ai Cloud (using your existing account) and send your model files to Cloud for calculations. The connection between your local R-Agena environment and agena.ai Cloud servers is based on the `httr` package in R.
 
 ## 8.1 Authentication
 
@@ -985,13 +985,13 @@ This will send a POST request to authentication server, and will return the logi
 
 ## 8.2 Model Calculation
 
-`calculate()` function is used to send an R model object to Agena AI Cloud servers for calculation. The function takes the following parameters:
+`calculate()` function is used to send an R model object to agena.ai Cloud servers for calculation. The function takes the following parameters:
 
 * `input_model` is the R Model object
 * `login` is the login object created with the credentials
-* (optional) `scenario` is the name of the `scenario` that contains the set of scenarios (`$id` of one of the `dataSets` objects) if any. If the model has only one scenario with observations, scenario needs not be specified (it is also possible to send a model without any observations).
+* (optional) `dataSet` is the name of the dataset that contains the set of observations (`$id` of one of the `dataSets` objects) if any. If the model has only one dataset (scenario) with observations, scenario needs not be specified (it is also possible to send a model without any observations).
 
-Currently servers accept a single set of observations for each calculation, if the R model has multiple scenarios (set of observations), you need to specify which scenario is to be used.
+Currently servers accept a single set of observations for each calculation, if the R model has multiple datasets (scenarios), you need to specify which dataset is to be used.
 
 For example,
 
@@ -1002,7 +1002,7 @@ calculate(example_model, example_login)
 or
 
 ```r
-calculate(example_model, example_login, scenario_id)
+calculate(example_model, example_login, dataSet_id)
 
 ```
 
@@ -1103,7 +1103,7 @@ example_sens_config <- create_sensitivity_config(
                       target = "node_one",
                       sensitivity_nodes = c("node_two","node_three"),
                       report_settings = list(summaryStats = c("mean", "variance")),
-                      dataset = "scenario_id",
+                      dataset = "dataSet_id",
                       network = "network_one")
 ```
 
@@ -1119,7 +1119,7 @@ In this section, some use case examples of R-Agena environment are shown.
 
 ## 9.1 Diet Experiment Model
 
-This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in Agena AI Modeller is given below:
+This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in agena.ai Modeller is given below:
 
 ![Diet Experiment Image](/Assets/diet_image.png)
 
@@ -1133,10 +1133,10 @@ source("RAgena.R")
 #First we create the "mean" and "variance" nodes
 
 mean <- Node$new(id = "mean", simulated = TRUE)
-mean$setExpressions("Normal(0.0,100000.0)")
+mean$set_expressions("Normal(0.0,100000.0)")
 
 variance <- Node$new(id = "variance", simulated = TRUE)
-variance$setExpressions("Uniform(0.0,50.0)")
+variance$set_expressions("Uniform(0.0,50.0)")
 ```
 
 Common variance and tau nodes:
@@ -1145,11 +1145,11 @@ Common variance and tau nodes:
 #Now we create the "common variance" and its "tau" parameter nodes
 
 tau <- Node$new(id = "tau", simulated = TRUE)
-tau$setExpressions("Gamma(0.001,1000.0)")
+tau$set_expressions("Gamma(0.001,1000.0)")
 
 common_var <- Node$new(id = "common_var", name = "common variance", simulated = TRUE)
-common_var$addParent(tau)
-common_var$setExpressions("Arithmetic(1.0/tau)")
+common_var$add_parent(tau)
+common_var$set_expressions("Arithmetic(1.0/tau)")
 ```
 
 Now we can create the four mean nodes, using a for loop and list of Nodes:
@@ -1164,9 +1164,9 @@ for (i in seq_along(mean_names)) {
   node_id <- paste0("mean",mean_names[i])
   node_name <- paste("mean",mean_names[[i]])
   means_list[[i]] <- Node$new(id = node_id, name = node_name, simulated = TRUE)
-  means_list[[i]]$addParent(mean)
-  means_list[[i]]$addParent(variance)
-  means_list[[i]]$setExpressions("Normal(mean,variance)")
+  means_list[[i]]$add_parent(mean)
+  means_list[[i]]$add_parent(variance)
+  means_list[[i]]$set_expressions("Normal(mean,variance)")
 }
 ```
 
@@ -1189,10 +1189,10 @@ for (i in seq_along(obs_nodes_list)) {
   for (j in seq_along(obs_nodes_list[[i]])) {
     node_id <- paste0("y",i,j)
     obs_nodes_list[[i]][[j]] <- Node$new(id = node_id, simulated = TRUE)
-    obs_nodes_list[[i]][[j]]$addParent(common_var)
-    obs_nodes_list[[i]][[j]]$addParent(means_list[[i]])
+    obs_nodes_list[[i]][[j]]$add_parent(common_var)
+    obs_nodes_list[[i]][[j]]$add_parent(means_list[[i]])
     this_expression <- paste0("Normal(",this_mean_id,",common_var)")
-    obs_nodes_list[[i]][[j]]$setExpressions(this_expression)
+    obs_nodes_list[[i]][[j]]$set_expressions(this_expression)
   }
 }
 ```
@@ -1212,7 +1212,7 @@ And add all the nodes to this network. First eight nodes:
 # Adding first eight nodes to the network
 
 for (nd in c(mean, variance, tau, common_var, means_list)) {
-  diet_network$addNode(nd)
+  diet_network$add_node(nd)
 }
 ```
 
@@ -1223,7 +1223,7 @@ Then adding all the experiment nodes:
 
 for (nds in obs_nodes_list) {
   for (nd in nds) {
-    diet_network$addNode(nd)
+    diet_network$add_node(nd)
   }
 }
 ```
@@ -1253,7 +1253,7 @@ for (i in seq_along(observations)) {
 }
 ```
 
-Now the model is ready with all the information, we can export it to either a .json or a .cmpx file for Agena AI calculations, either locally or on Cloud:
+Now the model is ready with all the information, we can export it to either a .json or a .cmpx file for agena.ai calculations, either locally or on Cloud:
 
 ```r
 # Creating json or cmpx file for the model
