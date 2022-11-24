@@ -1528,6 +1528,7 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
       if (input_model$dataSets[[i]]$id == dataSet) {
         obs_num <- length(model_to_send$model$dataSets[[i]]$observations)
         dataset_to_send <- model_to_send$model$dataSets[[i]]
+        dataset_to_send$results <- NULL
         break
       } else {
         obs_num <- 0
@@ -1540,6 +1541,7 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
       dataset_to_send <- NULL
     } else {
       dataset_to_send <- model_to_send$model$dataSets[[1]]
+      dataset_to_send$results <- NULL
     }
   }
   
@@ -1577,10 +1579,18 @@ calculate <- function(input_model, login, dataSet=NULL) {
   }
   if (check_auth(login) == 1){
     new_login <- refresh_auth(login)
-    response <- calc_model(input_model, new_login)
+    if(!is.null(dataSet)){
+      response <- calc_model(input_model, new_login, dataSet)
+    } else {
+      response <- calc_model(input_model, new_login)
+    }
   }
   if (check_auth(login) == 0){
-    response <- calc_model(input_model, login)
+    if(!is.null(dataSet)){
+      response <- calc_model(input_model, login, dataSet)
+    } else {
+      response <- calc_model(input_model, login)
+    }
   }
   
   #this function returns a Model object with results field filled in
@@ -1625,6 +1635,8 @@ analyse_sens <- function(input_model, cur_login, sens_config){
   
   sa_endpoint <- "https://api.agena.ai/public/v1/tools/sensitivity"
   
+  model_to_send <- generate_cmpx(input_model)
+  
   body <- list("sync-wait" = "true",
                "model" = model_to_send$model,
                "sensitivityConfig" = sens_config)
@@ -1647,7 +1659,6 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
   }
   if (check_auth(login) == 1){
     new_login <- refresh_auth(login)
-    cat(httr::content(new_login[[1]])$access_token)
     response <- analyse_sens(input_model, new_login, sensitivity_config)
   }
   if (check_auth(login) == 0){
@@ -1656,6 +1667,70 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
   
   #return(response) 
   #response will be presented in an output file
+  
+  if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
+    cat("Sensitivity analysis successful\n")
+    results <- httr::content(response)$results
+    
+    result_tables <- results$tables
+    tables <- vector(mode="list", length=length(result_tables))
+    
+    for (i in seq_along(result_tables)){
+      this_title <- result_tables[[i]]$title
+      this_headers <- result_tables[[i]]$headerRow
+      this_rows <- result_tables[[i]]$rows
+      
+      this_columns <- vector(mode = "list", length=length(this_headers))
+      for (j in seq_along(this_columns)){
+        for (k in seq_along(this_rows)){
+          this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
+        }
+      }
+      this_table <- data.frame(row.names=round(this_columns[[1]],3))
+      for (l in 2:length(this_headers)){
+        this_table$new <- this_columns[[l]]
+        colnames(this_table)[[l-1]] <- this_headers[[l]]
+      }
+  
+      tables[[i]] <- this_table
+      names(tables)[[i]] <- this_title
+    } #might need to make the row.names another regular column
+    
+    result_curves <- results$responseCurveGraphs
+    curves <- vector(mode="list", length=length(result_curves))
+    
+    result_tornadoes <- results$tornadoGraphs
+    tornadoes <- vector(mode="list", length=length(result_tornadoes))
+    
+    # x_test = c(1,3,5,7,9)
+    # y_test = c(2,6,10,14,18)
+    # 
+    # pdf("testpdf.pdf")
+    # print("A test graph")
+    # plot(x_test, y_test)
+    # dev.off()
+
+    ######curve and tornado graphs will be generated from result values
+    
+    # library(openxlsx)
+    # 
+    # dataset_names <- list('Sheet1' = tables[[1]], 'Sheet2' = tables[[2]])
+    # write.xlsx(dataset_names, file = 'mydata.xlsx')
+    # 
+    #     
+    # wb = openxlsx::createWorkbook()
+    # 
+    # for (i in seq_along(tables)){
+    #   this_sheet = openxlsx::addWorksheet(wb, names(tables)[[i]])
+    #   #generate xls file
+    #   #or generate html file
+    # 
+    # }
+
+    
+  } else {
+      cat("Sensitivity analysis failed\n")
+    }
 }
 
 
