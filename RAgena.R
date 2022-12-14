@@ -1697,19 +1697,19 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
       names(tables)[[i]] <- this_title
     }
     
-    OUT <- createWorkbook()
+    OUT <- openxlsx::createWorkbook()
 
     for (i in seq_along(tables)){
-      addWorksheet(OUT, i)
+      openxlsx::addWorksheet(OUT, i)
     }
     
     for (i in seq_along(tables)){
-      writeData(OUT, sheet = i, x = tables[[i]])
+      openxlsx::writeData(OUT, sheet = i, x = tables[[i]])
     }
     
     filename = paste0("sens_analysis_",input_model$id,".xlsx")
 
-    saveWorkbook(OUT, file = filename)
+    openxlsx::saveWorkbook(OUT, file = filename)
     cat("Sensitivity analysis is successful, table report is generated in the working directory")
     #return(tables)
     

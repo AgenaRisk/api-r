@@ -16,13 +16,14 @@ R-Agena is an R environment for creating, modifying, and parsing Bayesian networ
 
 # 2. Prerequisites
 
-R-Agena requires `rjson`, `httr`, and `Rgraphviz` packages installed.
+R-Agena requires `rjson`, `httr`, `Rgraphviz`, and `openxlsx` packages installed.
 
-To install `rjson` and `httr` from CRAN:
+To install `rjson`, `httr`, and `openxlsx` from CRAN:
 
 ```r
 install.packages('rjson')
 install.packages('httr')
+install.packages('openxlsx')
 ```
 
 To install `Rgraphviz` from Bioconductor:
