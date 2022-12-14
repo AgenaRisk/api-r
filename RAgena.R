@@ -1686,46 +1686,41 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
           this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
         }
       }
-      this_table <- data.frame(row.names=round(this_columns[[1]],3))
-      for (l in 2:length(this_headers)){
+
+      this_table <- data.frame(row.names=seq_along(this_columns[[1]]))
+      for (l in 1:length(this_headers)){
         this_table$new <- this_columns[[l]]
-        colnames(this_table)[[l-1]] <- this_headers[[l]]
+        colnames(this_table)[[l]] <- this_headers[[l]]
       }
   
       tables[[i]] <- this_table
       names(tables)[[i]] <- this_title
-    } #might need to make the row.names another regular column
+    }
     
-    result_curves <- results$responseCurveGraphs
-    curves <- vector(mode="list", length=length(result_curves))
-    
-    result_tornadoes <- results$tornadoGraphs
-    tornadoes <- vector(mode="list", length=length(result_tornadoes))
-    
-    # x_test = c(1,3,5,7,9)
-    # y_test = c(2,6,10,14,18)
-    # 
-    # pdf("testpdf.pdf")
-    # print("A test graph")
-    # plot(x_test, y_test)
-    # dev.off()
+    OUT <- createWorkbook()
 
-    ######curve and tornado graphs will be generated from result values
+    for (i in seq_along(tables)){
+      addWorksheet(OUT, i)
+    }
     
-    # library(openxlsx)
+    for (i in seq_along(tables)){
+      writeData(OUT, sheet = i, x = tables[[i]])
+    }
+    
+    filename = paste0("sens_analysis_",input_model$id,".xlsx")
+
+    saveWorkbook(OUT, file = filename)
+    cat("Sensitivity analysis is successful, table report is generated in the working directory")
+    #return(tables)
+    
+    
+     
+    # result_curves <- results$responseCurveGraphs
+    # curves <- vector(mode="list", length=length(result_curves))
     # 
-    # dataset_names <- list('Sheet1' = tables[[1]], 'Sheet2' = tables[[2]])
-    # write.xlsx(dataset_names, file = 'mydata.xlsx')
-    # 
-    #     
-    # wb = openxlsx::createWorkbook()
-    # 
-    # for (i in seq_along(tables)){
-    #   this_sheet = openxlsx::addWorksheet(wb, names(tables)[[i]])
-    #   #generate xls file
-    #   #or generate html file
-    # 
-    # }
+    # result_tornadoes <- results$tornadoGraphs
+    # tornadoes <- vector(mode="list", length=length(result_tornadoes))
+
 
     
   } else {
