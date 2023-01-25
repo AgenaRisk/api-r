@@ -8,7 +8,7 @@
 * [Creating and Modifying a Model in R](#6-creating-and-modifying-a-model-in-r)
 * [Creating Batch Cases for a Model in R](#7-creating-batch-cases-for-a-model-in-r)
 * [Agena.ai Cloud with R-Agena](#8-agenaai-cloud-with-r-agena)
-* [Local agena.ai API with R-Agena]()
+* [Local agena.ai API with R-Agena](#9-local-agenaai-api-with-r-agena)
 * [R-Agena Use Case Examples](#10-r-agena-use-case-examples)
 
 # 1. Description
