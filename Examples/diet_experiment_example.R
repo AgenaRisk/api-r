@@ -3,19 +3,19 @@ source("RAgena.R")
 #First we create the "mean" and "variance" nodes
 
 mean <- Node$new(id = "mean", simulated = TRUE)
-mean$setExpressions("Normal(0.0,100000.0)")
+mean$set_expressions("Normal(0.0,100000.0)")
 
 variance <- Node$new(id = "variance", simulated = TRUE)
-variance$setExpressions("Uniform(0.0,50.0)")
+variance$set_expressions("Uniform(0.0,50.0)")
 
 #Now we create the "common variance" and its "tau" parameter nodes
 
 tau <- Node$new(id = "tau", simulated = TRUE)
-tau$setExpressions("Gamma(0.001,1000.0)")
+tau$set_expressions("Gamma(0.001,1000.0)")
 
 common_var <- Node$new(id = "common_var", name = "common variance", simulated = TRUE)
-common_var$addParent(tau)
-common_var$setExpressions("Arithmetic(1.0/tau)")
+common_var$add_parent(tau)
+common_var$set_expressions("Arithmetic(1.0/tau)")
 
 #Creating a list of four mean nodes, "mean A", "mean B", "mean C", and "mean D"
 
@@ -26,9 +26,9 @@ for (i in seq_along(mean_names)) {
   node_id <- paste0("mean",mean_names[i])
   node_name <- paste("mean",mean_names[[i]])
   means_list[[i]] <- Node$new(id = node_id, name = node_name, simulated = TRUE)
-  means_list[[i]]$addParent(mean)
-  means_list[[i]]$addParent(variance)
-  means_list[[i]]$setExpressions("Normal(mean,variance)")
+  means_list[[i]]$add_parent(mean)
+  means_list[[i]]$add_parent(variance)
+  means_list[[i]]$set_expressions("Normal(mean,variance)")
 }
 
 # Defining the list of observations for the experiment nodes
@@ -47,10 +47,10 @@ for (i in seq_along(obs_nodes_list)) {
   for (j in seq_along(obs_nodes_list[[i]])) {
     node_id <- paste0("y",i,j)
     obs_nodes_list[[i]][[j]] <- Node$new(id = node_id, simulated = TRUE)
-    obs_nodes_list[[i]][[j]]$addParent(common_var)
-    obs_nodes_list[[i]][[j]]$addParent(means_list[[i]])
+    obs_nodes_list[[i]][[j]]$add_parent(common_var)
+    obs_nodes_list[[i]][[j]]$add_parent(means_list[[i]])
     this_expression <- paste0("Normal(",this_mean_id,",common_var)")
-    obs_nodes_list[[i]][[j]]$setExpressions(this_expression)
+    obs_nodes_list[[i]][[j]]$set_expressions(this_expression)
   }
 }
 
@@ -62,14 +62,14 @@ diet_network <- Network$new(id = "Hierarchical_Normal_Model_1",
 # Adding first eight nodes to the network
 
 for (nd in c(mean, variance, tau, common_var, means_list)) {
-  diet_network$addNode(nd)
+  diet_network$add_node(nd)
 }
 
 # Adding all the experiment nodes to the network
 
 for (nds in obs_nodes_list) {
   for (nd in nds) {
-    diet_network$addNode(nd)
+    diet_network$add_node(nd)
   }
 }
 

@@ -8,7 +8,8 @@
 * [Creating and Modifying a Model in R](#6-creating-and-modifying-a-model-in-r)
 * [Creating Batch Cases for a Model in R](#7-creating-batch-cases-for-a-model-in-r)
 * [Agena.ai Cloud with R-Agena](#8-agenaai-cloud-with-r-agena)
-* [R-Agena Use Case Examples](#9-r-agena-use-case-examples)
+* [Local agena.ai API with R-Agena]()
+* [R-Agena Use Case Examples](#10-r-agena-use-case-examples)
 
 # 1. Description
 
@@ -1145,11 +1146,46 @@ Using this config object, now you can use the `sensitivity_analysis()` function 
 sensitivity_analysis(example_model, test_login, example_sens_config)
 ```
 
-# 9. R-Agena Use Case Examples
+This will return a spreadsheet of tables and a json file for the results. The spreadsheet contains sensitivity analysis results and probability values for each sensitivity node defined in the configuration. The results json file contains raw results data for all analysis report options defined, such as tables, tornado graphs, and curve graphs.
+
+Note that the spreadsheet of tables is not created if there is an .xlsx file with the same name in the directory, then only results json is created.
+
+# 9. Local agena.ai API with R-Agena
+
+Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller. The local API has Java and maven dependencies, which you can see on its github page in full detail. R-Agena has communication with the local API.
+
+To manually set up the local API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
+
+Alternatively, in the R environment you can use
+
+```r
+local_api_clone()
+```
+
+to clone the git repository of the API in your R-Agena directory. At the moment, R-Agena and local API communication is possible only if the api repository is cloned into the R-Agena directory.
+
+Once the API is cloned, compiled, and developer license is activated, you can use the local API directly with your models defined in R. To use the local API for calculations of a model created in R:
+
+```r
+local_api_calculate(model, dataSet, output)
+```
+
+where the parameter `model` is an R Model object, `dataSet` is the id of one of the dataSets existing in the Model object, and `output` is the desired name of the output file to be generated with the result values. For example,
+
+```r
+local_api_calculate(model = example_model,
+                    dataSet = example_dataset_id,
+                    output = "exampe_results.json")
+```
+This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the result values and create the output file in the R-Agena directory.
+
+At the moment `local_api_calculate()` works with a single model and a single dataSet at a time.
+
+# 10. R-Agena Use Case Examples
 
 In this section, some use case examples of R-Agena environment are shown. 
 
-## 9.1 Diet Experiment Model
+## 10.1 Diet Experiment Model
 
 This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in agena.ai Modeller is given below:
 

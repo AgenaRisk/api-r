@@ -1665,12 +1665,14 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
     response <- analyse_sens(input_model, login, sensitivity_config)
   }
   
-  #return(response) 
-  #response will be presented in an output file
-  
+
   if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
     cat("Sensitivity analysis successful\n")
     results <- httr::content(response)$results
+    res_filename <- paste0(input_model$id,"_sens_results.json")
+    write(rjson::toJSON(results), res_filename)
+    cat("A json file of the sensitivity analysis results, called \"", res_filename, "\" is created in the directory\n")
+    
     
     result_tables <- results$tables
     tables <- vector(mode="list", length=length(result_tables))
@@ -1686,19 +1688,19 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
           this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
         }
       }
-
+      
       this_table <- data.frame(row.names=seq_along(this_columns[[1]]))
       for (l in 1:length(this_headers)){
         this_table$new <- this_columns[[l]]
         colnames(this_table)[[l]] <- this_headers[[l]]
       }
-  
+      
       tables[[i]] <- this_table
       names(tables)[[i]] <- this_title
     }
     
     OUT <- openxlsx::createWorkbook()
-
+    
     for (i in seq_along(tables)){
       openxlsx::addWorksheet(OUT, i)
     }
@@ -1707,28 +1709,81 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
       openxlsx::writeData(OUT, sheet = i, x = tables[[i]])
     }
     
-    filename = paste0("sens_analysis_",input_model$id,".xlsx")
-
-    openxlsx::saveWorkbook(OUT, file = filename)
-    cat("Sensitivity analysis is successful, table report is generated in the working directory")
-    #return(tables)
+    filename = paste0("sens_results_table",input_model$id,".xlsx")
     
-    
-     
-    # result_curves <- results$responseCurveGraphs
-    # curves <- vector(mode="list", length=length(result_curves))
-    # 
-    # result_tornadoes <- results$tornadoGraphs
-    # tornadoes <- vector(mode="list", length=length(result_tornadoes))
-
-
+    if (file.exists(filename)){
+      cat("Spreadsheet with sensitivity analysis result tables could not be created, a file with the name \"", filename,  "\" already exists in the directory\n")
+    } else {
+      openxlsx::saveWorkbook(OUT, file = filename)
+      cat("The file \"", filename, "\" in the working directory contains report tables\n")
+    }
     
   } else {
-      cat("Sensitivity analysis failed\n")
-    }
+    cat("Sensitivity analysis failed\n")
+  }
 }
 
+local_api_clone <- function(){
+  git_api_http <- "https://github.com/AgenaRisk/api.git"
+  system2("git", args=c("clone", git_api_http))
+}
 
+local_api_compile <- function(){
+  'currently not working as maven compiler requires the latest release
+  of API and not the snapshot. and the latest release cannot be checked out
+  through R'
+  
+  # git_api_latest <- "5adb20e89b9bf89ec4823084cc4f1fc56e945ced"
+  # cur_wd <- getwd()
+  # setwd("./api")
+  # system2("git",args="checkout", shQuote(git_api_latest))
+  # system2("powershell", args=c("mvn","clean","compile"))
+  # setwd(cur_wd)
+}
 
+local_api_activation <- function(key){
+  cur_wd <- getwd()
+  setwd("./api")
+  
+  activate_command <- paste0("'-Dexec.args=\"--keyActivate --key ",key,"\"'")
+  system2("powershell", args=c("mvn", "exec:java@activate", shQuote(activate_command)))
+  
+  setwd(cur_wd)
+}
 
+local_api_calculate <- function(model, dataSet, output){
+  
+  
+  modelname <- paste0("local_",model$id)
+  model$to_cmpx(filename=modelname)
+  
+  model_to_send <- generate_cmpx(model)
+  
+  for (i in seq_along(model$dataSets)) {
+    if (model$dataSets[[i]]$id == dataSet) {
+      dataset_to_send <- model_to_send$model$dataSets[[i]]
+      dataset_to_send$results <- NULL
+      break
+    } else {
+      dataset_to_send <- NULL
+    }
+  }
+  
+  datasetname <- paste0("local_",dataSet,".json")
+  write(rjson::toJSON(list(dataset_to_send)),datasetname)
+
+  cur_wd <- getwd()
+  model_path <- paste0(cur_wd,"/",modelname,".cmpx")
+  dataset_path <- paste0(cur_wd,"/",datasetname)
+  output_path <- paste0(cur_wd,"/",output)
+  
+  model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
+  dataset_path <- gsub("/","\\\\",paste0(cur_wd,"/",datasetname)) 
+  output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
+    
+  setwd("./api")
+  calc_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'`\"\"")
+  system2("powershell", args=c("mvn", "exec:java@calculate", shQuote(calc_com)))
+  setwd(cur_wd)
+}
 
