@@ -1164,7 +1164,21 @@ local_api_clone()
 
 to clone the git repository of the API in your R-Agena directory. At the moment, R-Agena and local API communication is possible only if the api repository is cloned into the R-Agena directory.
 
-Once the API is cloned, compiled, and developer license is activated, you can use the local API directly with your models defined in R. To use the local API for calculations of a model created in R:
+Once the API is cloned, you can compile maven environment with:
+
+```r
+local_api_compile()
+```
+
+and if needed, activate your agena.ai developer license with
+
+```r
+local_api_activate_license("1234-ABCD-5678-EFGH")
+```
+
+passing on your developer license key as the parameter.
+
+Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in R. To use the local API for calculations of a model created in R:
 
 ```r
 local_api_calculate(model, dataSet, output)
