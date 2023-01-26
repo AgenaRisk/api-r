@@ -1733,15 +1733,20 @@ local_api_compile <- function(){
   of API and not the snapshot. and the latest release cannot be checked out
   through R'
   
-  # git_api_latest <- "5adb20e89b9bf89ec4823084cc4f1fc56e945ced"
-  # cur_wd <- getwd()
-  # setwd("./api")
-  # system2("git",args="checkout", shQuote(git_api_latest))
-  # system2("powershell", args=c("mvn","clean","compile"))
-  # setwd(cur_wd)
+  cur_wd <- getwd()
+  setwd("./api")
+  
+  system2("git", args="checkout master")
+  system2("git", args="pull")
+  
+  latest_release <- system2("git", args="describe --tags --abbrev=0", stdout = TRUE)
+  
+  system2("git", args=c("checkout", latest_release))
+  system2("powershell", args=c("mvn","clean","compile"))
+  setwd(cur_wd)
 }
 
-local_api_activation <- function(key){
+local_api_activate_license <- function(key){
   cur_wd <- getwd()
   setwd("./api")
   
