@@ -380,7 +380,11 @@ A method to clear all observations in a specific dataset (scenario) in the model
 
 A method to clear all observations defined in a model. This function removes all observations from all datasets (scenarios).
 
-### 4.3.14 `change_settings(settings)`
+### 4.3.14 `import_results(results_file)`
+
+A method to import results of a calculated dataSet from a json file. This correct format for the results json file for this method is the file generated with the local agena.ai developer API calculation (see [Section 9](#9-local-agenaai-api-with-r-agena)).
+
+### 4.3.15 `change_settings(settings)`
 
 A method to change model settings. The input parameter `settings` must be a list with the correctly named elements, for example:
 
@@ -396,7 +400,7 @@ new_settings <- list(parameterLearningLogging = TRUE,
 example_model$change_settings(new_settings)
 ```
 
-### 4.3.15 `default_settings()`
+### 4.3.16 `default_settings()`
 
 A method to reset model settings back to default values. The default values for model settings are:
 
@@ -408,18 +412,17 @@ A method to reset model settings back to default values. The default values for 
 * iterations = 50
 * tolerance = 1
 
-
-### 4.3.16 `to_cmpx(filename = NULL)`
+### 4.3.17 `to_cmpx(filename = NULL)`
 
 A method to export the `Model` to a .cmpx file. This method passes on all the information about the model, its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format readable by agena.ai.
 
 If the input parameter `filename` is not specified, it will use the `Model$id` for the filename.
 
-### 4.3.17 `to_json(filename = NULL)`
+### 4.3.18 `to_json(filename = NULL)`
 
 A method to export the `Model` to a .json file instead of .cmpx. See `to_cmpx()` description above for all the details.
 
-### 4.3.18 `get_results()`
+### 4.3.19 `get_results()`
 
 A method to generate a .csv file based on the calculation results a `Model` contains. See [Section 8](#8-agena-ai-cloud-with-r-agena) for details.
 
@@ -462,11 +465,15 @@ Default is 75)
     * `sensLowerPercentileValue` (lower percentile value to limit sensitivity node data by. Default is 0)
     * `sensUpperPercentileValue` (upper percentile value to limit sensitivity node data by. Default is 100)
 
-For the use of the function, see [Section 8](#8-agena-ai-cloud-with-r-agena).
+For the use of the function, see [Section 8](#8-agenaai-cloud-with-r-agena).
 
 ## 4.5 agena.ai Cloud Related Functions
 
-R-Agena environment allows users to send their models to agena.ai Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agena-ai-cloud-with-r-agena).
+R-Agena environment allows users to send their models to agena.ai Cloud servers for calculation. The functions around the server capabilities (including authentication) are described in [Section 8](#8-agenaai-cloud-with-r-agena).
+
+## 4.6 agena.ai Local API Related Function
+
+R-Agena environment allows users to connect to the local agena.ai developer API for calculation. The functions about the local developer API communication are descibed in [Section 9](#9-local-agenaai-api-with-r-agena).
 
 # 5. Importing a Model from .cmpx
 
