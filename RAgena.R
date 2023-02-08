@@ -691,6 +691,9 @@ Model <- setRefClass("Model",
                        create_dataSet = function(id){
                          dataSets <<- append(dataSets,Dataset$new(id=id, observations=NULL))
                        },
+                       import_results = function(result_file){
+                         dataset_import(.self, result_file)
+                       },
                        get_dataSets = function(){
                          scenList <- c()
                          if (length(.self$dataSets)>0) {
@@ -1441,9 +1444,19 @@ generate_results_csv <- function(inputModel){
   
 }
 
-
-
-
+dataset_import <- function(inputModel, dataSet){
+  
+  input_results <- rjson::fromJSON(file = dataSet)
+  results_id <- input_results[[1]]$id
+  results <- input_results[[1]]$results
+  
+  for (i in seq_along(inputModel$dataSets)){
+    if(inputModel$dataSets[[i]]$id == results_id){
+      inputModel$dataSets[[i]]$results <- results
+      cat("Results in the file",dataSet,"are imported to the model dataset called",results_id)
+    }
+  }
+}
 
 
 ###### Agena AI Cloud Server Functionalities
@@ -1776,19 +1789,32 @@ local_api_calculate <- function(model, dataSet, output){
   
   datasetname <- paste0("local_",dataSet,".json")
   write(rjson::toJSON(list(dataset_to_send)),datasetname)
-
-  cur_wd <- getwd()
-  model_path <- paste0(cur_wd,"/",modelname,".cmpx")
-  dataset_path <- paste0(cur_wd,"/",datasetname)
-  output_path <- paste0(cur_wd,"/",output)
   
-  model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
-  dataset_path <- gsub("/","\\\\",paste0(cur_wd,"/",datasetname)) 
-  output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
+  cur_wd <- getwd()
+  os <- Sys.info()[["sysname"]]
+  
+  if(os == "Windows"){
+
     
-  setwd("./api")
-  calc_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'`\"\"")
-  system2("powershell", args=c("mvn", "exec:java@calculate", shQuote(calc_com)))
-  setwd(cur_wd)
+    model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
+    dataset_path <- gsub("/","\\\\",paste0(cur_wd,"/",datasetname)) 
+    output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
+    
+    setwd("./api")
+    calc_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'`\"\"")
+    system2("powershell", args=c("mvn", "exec:java@calculate", shQuote(calc_com)))
+    setwd(cur_wd)
+  }
+
+  if(os == "Linux" || os == "Darwin" ){
+    model_path <- paste0(cur_wd,"/",modelname,".cmpx")
+    dataset_path <- paste0(cur_wd,"/",datasetname)
+    output_path <- paste0(cur_wd,"/",output)
+    
+    setwd("./api")
+    calc_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'\"")
+    system2("mvn", args=c("exec:java@calculate", shQuote(calc_com)))
+    setwd(cur_wd)
+  }
 }
 
