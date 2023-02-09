@@ -1755,7 +1755,15 @@ local_api_compile <- function(){
   latest_release <- system2("git", args="describe --tags --abbrev=0", stdout = TRUE)
   
   system2("git", args=c("checkout", latest_release))
-  system2("powershell", args=c("mvn","clean","compile"))
+  
+  os <- Sys.info()[["sysname"]]
+  
+  if(os == "Windows"){
+    system2("powershell", args=c("mvn","clean","compile"))
+  }
+  if(os == "Linux" || os == "Darwin"){
+    system2("mvn", args=c("clean","compile"))
+  }
   setwd(cur_wd)
 }
 
@@ -1764,7 +1772,15 @@ local_api_activate_license <- function(key){
   setwd("./api")
   
   activate_command <- paste0("'-Dexec.args=\"--keyActivate --key ",key,"\"'")
-  system2("powershell", args=c("mvn", "exec:java@activate", shQuote(activate_command)))
+  os <- Sys.info()[["sysname"]]
+  
+  if(os == "Windows"){
+    system2("powershell", args=c("mvn", "exec:java@activate", shQuote(activate_command)))
+  }
+  if(os == "Linux" || os == "Darwin"){
+    system2("mvn", args=c("exec:java@activate", shQuote(activate_command)))
+  }
+
   
   setwd(cur_wd)
 }
