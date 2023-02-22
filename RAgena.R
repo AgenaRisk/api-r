@@ -1771,14 +1771,15 @@ local_api_activate_license <- function(key){
   cur_wd <- getwd()
   setwd("./api")
   
-  activate_command <- paste0("'-Dexec.args=\"--keyActivate --key ",key,"\"'")
   os <- Sys.info()[["sysname"]]
   
   if(os == "Windows"){
+    activate_command <- paste0("'-Dexec.args=\"--keyActivate --key ",key,"\"'")
     system2("powershell", args=c("mvn", "exec:java@activate", shQuote(activate_command)))
   }
   if(os == "Linux" || os == "Darwin"){
-    system2("mvn", args=c("exec:java@activate", shQuote(activate_command)))
+    activate_command <- paste0("-Dexec.args=\"--keyActivate --key ",key,"\"")
+    system2("mvn", args=c("exec:java@activate", activate_command))
   }
 
   
@@ -1829,7 +1830,48 @@ local_api_calculate <- function(model, dataSet, output){
     
     setwd("./api")
     calc_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'\"")
-    system2("mvn", args=c("exec:java@calculate", shQuote(calc_com)))
+    system2("mvn", args=c("exec:java@calculate", calc_com))
+    setwd(cur_wd)
+  }
+}
+
+
+local_api_sensitivity <- function(model, sens_config, output){
+  
+  
+  modelname <- paste0("local_",model$id)
+  model$to_cmpx(filename=modelname)
+  
+  model_to_send <- generate_cmpx(model)
+  
+  sens_config_name <- paste0("local_",sens_config$dataSet,"_sens_config.json")
+  
+  write(rjson::toJSON(sens_config),sens_config_name)
+  
+  cur_wd <- getwd()
+  os <- Sys.info()[["sysname"]]
+  
+  if(os == "Windows"){
+    
+    
+    model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
+    sens_config_path <- gsub("/","\\\\",paste0(cur_wd,"/",sens_config_name))
+    output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
+    
+    setwd("./api")
+    sens_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'`\"\"")
+    system2("powershell", args=c("mvn", "exec:java@sensitivity", shQuote(sens_com)))
+    setwd(cur_wd)
+  }
+  
+  if(os == "Linux" || os == "Darwin" ){
+    model_path <- paste0(cur_wd,"/",modelname,".cmpx")
+    sens_config_path <-  paste0(cur_wd,"/",sens_config_name)
+    output_path <- paste0(cur_wd,"/",output)
+    
+    setwd("./api")
+    sens_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'\"")
+    system2("mvn", args=c("exec:java@calculate", sens_com))
     setwd(cur_wd)
   }
 }
