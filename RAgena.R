@@ -1848,6 +1848,23 @@ local_api_sensitivity <- function(model, sens_config, output){
   
   write(rjson::toJSON(sens_config),sens_config_name)
   
+  if(!is.null(sens_config$dataSet)) {
+    dataSet <- sens_config$dataSet
+    
+    for (i in seq_along(model$dataSets)) {
+      if (model$dataSets[[i]]$id == dataSet) {
+        dataset_to_send <- model_to_send$model$dataSets[[i]]
+        dataset_to_send$results <- NULL
+        break
+      } else {
+        dataset_to_send <- NULL
+      }
+    }
+    datasetname <- paste0("local_",dataSet,"_data_set.json")
+    write(rjson::toJSON(list(dataset_to_send)),datasetname)
+  }
+  
+
   cur_wd <- getwd()
   os <- Sys.info()[["sysname"]]
   
@@ -1858,10 +1875,20 @@ local_api_sensitivity <- function(model, sens_config, output){
     sens_config_path <- gsub("/","\\\\",paste0(cur_wd,"/",sens_config_name))
     output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
     
-    setwd("./api")
-    sens_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'`\"\"")
-    system2("powershell", args=c("mvn", "exec:java@sensitivity", shQuote(sens_com)))
-    setwd(cur_wd)
+    if(!is.null(sens_config$dataSet)){
+      dataset_path <- gsub("/","\\\\",paste0(cur_wd,"/",datasetname)) 
+      setwd("./api")
+      sens_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"' --config '",sens_config_path,"'`\"\"")
+      system2("powershell", args=c("mvn", "exec:java@sensitivity", shQuote(sens_com)))
+      setwd(cur_wd)
+    } else {
+      setwd("./api")
+      sens_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'`\"\"")
+      system2("powershell", args=c("mvn", "exec:java@sensitivity", shQuote(sens_com)))
+      setwd(cur_wd)
+    }
+    
+
   }
   
   if(os == "Linux" || os == "Darwin" ){
@@ -1869,10 +1896,18 @@ local_api_sensitivity <- function(model, sens_config, output){
     sens_config_path <-  paste0(cur_wd,"/",sens_config_name)
     output_path <- paste0(cur_wd,"/",output)
     
-    setwd("./api")
-    sens_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'\"")
-    system2("mvn", args=c("exec:java@calculate", sens_com))
-    setwd(cur_wd)
+    if(!is.null(sens_config$dataSet)){
+      dataset_path <- paste0(cur_wd,"/",datasetname)
+      setwd("./api")
+      sens_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"' --config '",sens_config_path,"'\"")
+      system2("mvn", args=c("exec:java@calculate", sens_com))
+      setwd(cur_wd)
+    } else {
+      setwd("./api")
+      sens_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'\"")
+      system2("mvn", args=c("exec:java@calculate", sens_com))
+      setwd(cur_wd)
+    }
   }
 }
 
