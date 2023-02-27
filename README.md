@@ -1159,11 +1159,11 @@ Note that the spreadsheet of tables is not created if there is an .xlsx file wit
 
 # 9. Local agena.ai API with R-Agena
 
-Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller. The local API has Java and maven dependencies, which you can see on its github page in full detail. R-Agena has communication with the local API.
+Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller. The local API has Java and maven dependencies, which you can see on its github page in full detail. R-Agena has communication with the local agena developer API.
 
-To manually set up the local API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
+To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api. If you want full compability with the R-Agena environment, make sure to clone local agena API in your R-Agena directory. The local API communication functions in the R environment work with the relative file paths, assuming the local API is cloned here.
 
-Alternatively, in the R environment you can use
+For the API setup, in the R environment you can use
 
 ```r
 local_api_clone()
@@ -1185,6 +1185,8 @@ local_api_activate_license("1234-ABCD-5678-EFGH")
 
 passing on your developer license key as the parameter.
 
+**!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository.**
+
 Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in R. To use the local API for calculations of a model created in R:
 
 ```r
@@ -1198,9 +1200,25 @@ local_api_calculate(model = example_model,
                     dataSet = example_dataset_id,
                     output = "exampe_results.json")
 ```
-This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the result values and create the output file in the R-Agena directory.
+This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the calculation result values and create the output file in the R-Agena directory, and remove the model and dataSet files used for calculation from the directory.
 
 At the moment `local_api_calculate()` works with a single model and a single dataSet at a time.
+
+You can also run a sensitivity analysis in the local API, using
+
+```r
+local_api_sensitivity(model, sens_config, output)
+```
+
+Here the sens_config is created by the use of `create_sensitivity_config(...)`. For example: 
+
+```r
+local_api_sensitivity(model = example_model,
+                      sens_config = example_sensitivity_config,
+                      output = "example_sa_results.json")
+```
+
+This function will create the .cmpx file for the model and the separate .json files required for the dataSet and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the sensitivity analysis result values and create the output file in the R-Agena directory, and remove the model, dataSet and config files used for sensitivity analysis from the directory. `local_api_sensitivity()` looks at the `dataSet` field of `sens_config` to determine which dataSet to use, if the field doesn't exist, the default behaviour is to create a new dataSet without any observations for the sensitivity analysis.
 
 # 10. R-Agena Use Case Examples
 
