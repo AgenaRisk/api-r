@@ -1833,6 +1833,13 @@ local_api_calculate <- function(model, dataSet, output){
     system2("mvn", args=c("exec:java@calculate", calc_com))
     setwd(cur_wd)
   }
+  
+  if (file.exists(paste0(modelname,".cmpx"))) {
+    unlink(paste0(modelname,".cmpx"))
+  }
+  if(file.exists(datasetname)) {
+      unlink(datasetname)
+  }
 }
 
 
@@ -1844,11 +1851,8 @@ local_api_sensitivity <- function(model, sens_config, output){
   
   model_to_send <- generate_cmpx(model)
   
-  sens_config_name <- paste0("local_",sens_config$dataSet,"_sens_config.json")
-  
-  write(rjson::toJSON(sens_config),sens_config_name)
-  
   if(!is.null(sens_config$dataSet)) {
+    sens_config_name <- paste0("local_",sens_config$dataSet,"_sens_config.json")
     dataSet <- sens_config$dataSet
     
     for (i in seq_along(model$dataSets)) {
@@ -1862,14 +1866,16 @@ local_api_sensitivity <- function(model, sens_config, output){
     }
     datasetname <- paste0("local_",dataSet,"_data_set.json")
     write(rjson::toJSON(list(dataset_to_send)),datasetname)
+  } else {
+    datasetname <- NULL
+    sens_config_name <- paste0("local_no_data_sens_config.json")
   }
-  
+  write(rjson::toJSON(sens_config),sens_config_name)
 
   cur_wd <- getwd()
   os <- Sys.info()[["sysname"]]
   
   if(os == "Windows"){
-    
     
     model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
     sens_config_path <- gsub("/","\\\\",paste0(cur_wd,"/",sens_config_name))
@@ -1887,8 +1893,6 @@ local_api_sensitivity <- function(model, sens_config, output){
       system2("powershell", args=c("mvn", "exec:java@sensitivity", shQuote(sens_com)))
       setwd(cur_wd)
     }
-    
-
   }
   
   if(os == "Linux" || os == "Darwin" ){
@@ -1908,6 +1912,17 @@ local_api_sensitivity <- function(model, sens_config, output){
       system2("mvn", args=c("exec:java@calculate", sens_com))
       setwd(cur_wd)
     }
+  }
+  
+  if (file.exists(paste0(modelname,".cmpx"))) {
+    unlink(paste0(modelname,".cmpx"))
+  }
+  if (!is.null(datasetname)){
+    if(file.exists(datasetname)) {
+    unlink(datasetname)
+  }}
+  if (file.exists(sens_config_name)) {
+    unlink(sens_config_name)
   }
 }
 
