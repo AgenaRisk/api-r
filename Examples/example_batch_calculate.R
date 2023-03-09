@@ -13,7 +13,7 @@ create_csv_template(model)
 # The dataset csv is manually prepared and filled in outside the R environment
 # In this example, it now includes five scenarios with different observations, and only the columns about the observed variables are kept
 
-inputData <- "Car Costs_0 Model_DataSet_modified.csv"
+inputData <- "Examples/Car Costs_0 Model_DataSet_modified.csv"
 
 # Creating batch cases, this function creates a new .json model file in the working directory with dataSets representing all the rows in the input data
 create_batch_cases(model, inputData)
@@ -22,5 +22,7 @@ create_batch_cases(model, inputData)
 model_with_cases <- from_cmpx("Car Costs_0 Model_Batch_Cases.json")
 
 # Now model_with_cases is an R model object containing both the dataSets already existing in the model and a new dataSet for each row in the input data
-# and it is ready to be used for calculation purposes, locally or on the cloud
+# and it is ready to be used for calculation purposes
 
+# Running the local API batch calculate function to update the model object with all the results
+local_api_batch_calculate(model_with_cases)
