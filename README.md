@@ -384,6 +384,8 @@ A method to clear all observations defined in a model. This function removes all
 
 A method to import results of a calculated dataSet from a json file. This correct format for the results json file for this method is the file generated with the local agena.ai developer API calculation (see [Section 9](#9-local-agenaai-api-with-r-agena)).
 
+Note that when you use local API calculation, the results are imported to the model automatically.
+
 ### 4.3.15 `change_settings(settings)`
 
 A method to change model settings. The input parameter `settings` must be a list with the correctly named elements, for example:
@@ -1200,9 +1202,16 @@ local_api_calculate(model = example_model,
                     dataSet = example_dataset_id,
                     output = "exampe_results.json")
 ```
-This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the calculation result values and create the output file in the R-Agena directory, and remove the model and dataSet files used for calculation from the directory.
+This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the calculation result values and create the output file in the R-Agena directory, and remove the model and dataSet files used for calculation from the directory. The function also updates the R Model object with the calculation results (in addition to creating the separate results.json file in the directory).
 
-At the moment `local_api_calculate()` works with a single model and a single dataSet at a time.
+If you'd like to run multiple dataSets in the same model in batch, you can use `local_api_batch_calculate()` instead. This function takes an R Model object as input and runs the calculation for each dataSet in it, and fills in all the relevant result fields under each dataSet. You can use this function as
+
+```r
+local_api_batch_calculate(model = example_model)
+```
+
+where `example_model` is an R Model object with multiple dataSets.
+
 
 You can also run a sensitivity analysis in the local API, using
 
