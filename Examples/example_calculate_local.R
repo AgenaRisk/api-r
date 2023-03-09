@@ -31,9 +31,7 @@ model$enter_observation(dsId, node=nodeReliability$id, network=network$id, value
 
 local_api_calculate(model, dsId, "mercedes.json")
 
-# Importing the results to the model object, accessing and displaying information
-
-model$import_results('mercedes.json')
+# Accessing and displaying information which now is included in the model object
 
 dsIndex <- which(sapply(model$dataSets, function(sds) sds$id %in% dsId))
 dataSet <- model$dataSets[[dsIndex]]

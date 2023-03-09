@@ -33,7 +33,7 @@ credentials <- login("test@example.com", "1234567890")
 
 calculate(model, credentials, dataSet$id)
 
-# Obtaining the results from agena.ai cloud server, accessing and displaying information
+# Accessing and displaying information which now is included in the model object
 
 resIndex <- which(sapply(model$dataSets[[dsIndex]]$results, function(res) res$node %in% "total_cost"))
 model$dataSets[[dsIndex]]$results[[resIndex]]$node

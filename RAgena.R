@@ -678,11 +678,11 @@ Model <- setRefClass("Model",
                                networkLinks <<- networkLinks[-i]
                                break
                              } else {
-                               cat("This network link is not in the model")
+                               cat("This network link is not in the model\n")
                              }
                            } 
                          } else {
-                           cat("This model does not have any network links")
+                           cat("This model does not have any network links\n")
                          }
                        },
                        remove_all_network_links = function(){
@@ -952,7 +952,7 @@ from_cmpx <- function(modelPath){
                                   description = cmpx_networks[[i]]$nodes[[j]]$description,
                                   type = cmpx_networks[[i]]$nodes[[j]]$configuration$type)
       
-      if (is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$simulated)) {
+      if ((is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$simulated)) || (cmpx_networks[[i]]$nodes[[j]]$configuration$simulated == FALSE)) {
         nodes[[i]][[j]]$simulated <- FALSE
       } else {
         nodes[[i]][[j]]$simulated <- TRUE
@@ -1312,7 +1312,7 @@ generate_cmpx <- function(inputModel) {
 
 create_batch_cases <- function(inputModel, inputData){
   
-  inputTable <- read.csv(file=inputData)
+  inputTable <- read.csv(file=inputData, check.names = FALSE, na.strings = c(""))
   col_headers <- names(inputTable)[-1]
   obs_nodes <- c()
   obs_networks <- c()
@@ -1325,15 +1325,18 @@ create_batch_cases <- function(inputModel, inputData){
     temp_id <- as.character(as.character(inputTable[i,][[1]]))
     inputModel$create_dataSet(id = temp_id)
     for (j in seq_along(col_headers)){
-      inputModel$enter_observation(dataSet = temp_id,
-                                   node = obs_nodes[j], network = obs_networks[j], 
-                                   value = inputTable[i,][[j+1]])
+      
+      if(!is.na(inputTable[i,][[j+1]])){
+        inputModel$enter_observation(dataSet = temp_id,
+                                     node = obs_nodes[j], network = obs_networks[j], 
+                                     value = inputTable[i,][[j+1]])
+      }
+
     }
 
   }
   filename <- paste0(inputModel$id, "_Batch_Cases")
   inputModel$to_json(filename = filename)
-  inputModel$clear_all_observations()
   
   for (i in seq_along(inputTable)){
     temp_id <- as.character(as.character(inputTable[i,][[1]]))
@@ -1453,7 +1456,7 @@ dataset_import <- function(inputModel, dataSet){
   for (i in seq_along(inputModel$dataSets)){
     if(inputModel$dataSets[[i]]$id == results_id){
       inputModel$dataSets[[i]]$results <- results
-      cat("Results in the file",dataSet,"are imported to the model dataset called",results_id)
+      cat("Results in the file",dataSet,"are imported to the model dataset called",results_id,"\n")
     }
   }
 }
@@ -1840,6 +1843,13 @@ local_api_calculate <- function(model, dataSet, output){
   if(file.exists(datasetname)) {
       unlink(datasetname)
   }
+  
+  if (file.exists(output_path)){
+    model$import_results(output_path)
+    cat("Calculation results are imported to the model object under relevant dataSet\n")
+  }
+  
+  
 }
 
 
@@ -1896,3 +1906,22 @@ local_api_sensitivity <- function(model, sens_config, output){
   }
 }
 
+local_api_batch_calculate <- function(model){
+
+  
+  for (ds in model$dataSets) {
+
+    this_dataSet <- ds$id
+    this_output <- paste0(model$id, "_", ds$id, "_results.json")
+    local_api_calculate(model, this_dataSet, this_output)
+    if (file.exists(this_output)) {
+      model$import_results(this_output)
+      unlink(this_output)
+    } else {
+      cat("Error importing results from the file",this_output,"\n")
+    }
+  }
+  cat("\nAll cases are calculated, the model object now contains results under its dataSets\n")
+
+  
+}
