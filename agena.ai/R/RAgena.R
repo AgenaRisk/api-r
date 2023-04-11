@@ -568,6 +568,8 @@ Dataset <- setRefClass("Dataset",
 #' @field dataSets list of dataSets in the model 
 #' @field networkLinks list of network links in the model 
 #' @field settings list of settings of the model 
+#'
+#' @export
 Model <- setRefClass("Model",
                      fields = list(id = "character",
                                    networks = "list",
