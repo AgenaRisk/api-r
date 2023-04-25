@@ -13,9 +13,15 @@
 
 # 1. Description
 
-R-Agena is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with agena.ai Cloud for individual or batch model calculations.
+agena.ai is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with agena.ai Cloud for individual or batch model calculations. In the rest of this document, the R environment is referred to as R-Agena.
 
-# 2. Prerequisites
+# 2. Prerequisites and Installation
+
+To install R-Agena with `devtools`:
+
+```r
+devtools::install_github("")
+```
 
 R-Agena requires `rjson`, `httr`, `Rgraphviz`, and `openxlsx` packages installed.
 
@@ -35,6 +41,7 @@ if (!require("BiocManager", quietly = TRUE))
 
 BiocManager::install("Rgraphviz")
 ```
+
 
 # 3. Structure of R-Agena Classes
 
@@ -479,20 +486,11 @@ R-Agena environment allows users to connect to the local agena.ai developer API 
 
 # 5. Importing a Model from .cmpx
 
-To use R-Agena environment, you can create a new R script and source/import the base RAgena.R code with:
-
-```r
-source("RAgena.R")
-
-# or source("full/path/to/RAgena.R") if the base R code is not in the same working directory as the current R script
-```
-
-This will import all the R-Agena classes and functions to be used in the current R script.
-
-
 To import an existing agena.ai model (from a .cmpx file), use the `from_cmpx()` function:
 
 ```r
+library(agena.ai)
+
 new_model <- from_cmpx("/path/to/model/file.cmpx")
 ```
 
@@ -528,12 +526,10 @@ Once the R model is created from the imported .cmpx file, the `Model` object as 
 
 It is possible to create an agena.ai model entirely in R, without a .cmpx file to begin with. Once all the networks and nodes of a model are created and defined in R, you can export the model to a .cmpx or .json file to be used with agena.ai calculations and inference, locally or on agena.ai Cloud. In this section, creating a model is shown step by step, starting with nodes.
 
-In an R script where base R-Agena.R code is sourced, you can create and modify BNs in R. As a reminder, to source/import the base code:
+Import the installed agena.ai R code with
 
 ```r
-source("RAgena.R")
-
-# or source("full/path/to/RAgena.R") if the base R code is not in the same working directory as the current R script
+library(agena.ai)
 ```
 
 ## 6.1 Creating Nodes
@@ -1163,7 +1159,7 @@ Note that the spreadsheet of tables is not created if there is an .xlsx file wit
 
 Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller. The local API has Java and maven dependencies, which you can see on its github page in full detail. R-Agena has communication with the local agena developer API.
 
-To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api. If you want full compability with the R-Agena environment, make sure to clone local agena API in your R-Agena directory. The local API communication functions in the R environment work with the relative file paths, assuming the local API is cloned here.
+To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
 
 For the API setup, in the R environment you can use
 
@@ -1171,7 +1167,7 @@ For the API setup, in the R environment you can use
 local_api_clone()
 ```
 
-to clone the git repository of the API in your R-Agena directory. At the moment, R-Agena and local API communication is possible only if the api repository is cloned into the R-Agena directory.
+to clone the git repository of the API in your working directory.
 
 Once the API is cloned, you can compile maven environment with:
 
@@ -1195,14 +1191,14 @@ Once the local API is compiled and developer license is activated, you can use t
 local_api_calculate(model, dataSet, output)
 ```
 
-where the parameter `model` is an R Model object, `dataSet` is the id of one of the dataSets existing in the Model object, and `output` is the desired name of the output file to be generated with the result values. For example,
+where the parameter `model` is an R Model object, `dataSet` is the id of one of the dataSets existing in the Model object, and `output` is the desired name of the output file to be generated with the result values. Note that `output` is just the file name and not the absolute path. For example,
 
 ```r
 local_api_calculate(model = example_model,
                     dataSet = example_dataset_id,
                     output = "exampe_results.json")
 ```
-This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the calculation result values and create the output file in the R-Agena directory, and remove the model and dataSet files used for calculation from the directory. The function also updates the R Model object with the calculation results (in addition to creating the separate results.json file in the directory).
+This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the working directory), obtain the calculation result values and create the output file in the working directory, and remove the model and dataSet files used for calculation from the directory. The function also updates the R Model object with the calculation results (in addition to creating the separate results.json file in the directory).
 
 If you'd like to run multiple dataSets in the same model in batch, you can use `local_api_batch_calculate()` instead. This function takes an R Model object as input and runs the calculation for each dataSet in it, and fills in all the relevant result fields under each dataSet. You can use this function as
 
@@ -1227,7 +1223,7 @@ local_api_sensitivity(model = example_model,
                       output = "example_sa_results.json")
 ```
 
-This function will create the .cmpx file for the model and the separate .json files required for the dataSet and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the R-Agena directory), obtain the sensitivity analysis result values and create the output file in the R-Agena directory, and remove the model, dataSet and config files used for sensitivity analysis from the directory. `local_api_sensitivity()` looks at the `dataSet` field of `sens_config` to determine which dataSet to use, if the field doesn't exist, the default behaviour is to create a new dataSet without any observations for the sensitivity analysis.
+This function will create the .cmpx file for the model and the separate .json files required for the dataSet and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the working directory), obtain the sensitivity analysis result values and create the output file in the working directory, and remove the model, dataSet and config files used for sensitivity analysis from the directory. `local_api_sensitivity()` looks at the `dataSet` field of `sens_config` to determine which dataSet to use, if the field doesn't exist, the default behaviour is to create a new dataSet without any observations for the sensitivity analysis.
 
 # 10. R-Agena Use Case Examples
 
@@ -1244,7 +1240,7 @@ In this section we will create this model entirely in RAgena environment. We can
 Mean and variance nodes:
 
 ```r
-source("RAgena.R")
+library(agena.ai)
 
 #First we create the "mean" and "variance" nodes
 

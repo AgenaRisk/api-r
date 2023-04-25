@@ -65,25 +65,25 @@ The input parameter of the function is a Node object variable. A good practice i
 
 \item{\code{remove_variable(variable_name)}}{A method to remove one of the existing variables (constants) from a node, using the variable_name.}
 
-\item{\code{set_distribution_type(new_distr_type)}}{A method to set the table type (distr_type) of a node. If a Node is simulated, 
-its table type can be "Expression" or "Partitioned" - the latter is only if the 
-node has parent nodes. If a Node is not simulated, its table type can be "Manual", 
+\item{\code{set_distribution_type(new_distr_type)}}{A method to set the table type (distr_type) of a node. If a Node is simulated,
+its table type can be "Expression" or "Partitioned" - the latter is only if the
+node has parent nodes. If a Node is not simulated, its table type can be "Manual",
 "Expression", or "Partitioned Expression (if the node has parent nodes)".}
 
-\item{\code{set_expressions(new_expr, partition_parents = NULL)}}{The method to set the probability values if the table type (distr_type) of a Node is "Expression" 
-or "Partitioned". If the table type is "Expression", new_expr is a single string and partition_parents 
-is left NULL. If the table type is "Partitioned", new_expr is a list of expressions for each parent 
+\item{\code{set_expressions(new_expr, partition_parents = NULL)}}{The method to set the probability values if the table type (distr_type) of a Node is "Expression"
+or "Partitioned". If the table type is "Expression", new_expr is a single string and partition_parents
+is left NULL. If the table type is "Partitioned", new_expr is a list of expressions for each parent
 state, and partition_parents is a list of strings for each partitioned parent node id.}
 
 \item{\code{set_probabilities(new_probs, by_rows = TRUE)}}{The method to set the probability values if the table type (distr_type) of a Node is "Manual".
-new_probs is a list of numerical values, and the length of the input list depends on the number 
-of the states of the node and of its parents.
+                        new_probs is a list of numerical values, and the length of the input list depends on the number
+                        of the states of the node and of its parents.
 
-You can format the input list in two different orders. If the parameter by_rows is set to true, 
-the method will read the input list to fill in the NPT row by row; if set to false, the method 
-will read the input list to fill in the NPT column by columnn. See README.md for examples.}
+                        You can format the input list in two different orders. If the parameter by_rows is set to true,
+                        the method will read the input list to fill in the NPT row by row; if set to false, the method
+                        will read the input list to fill in the NPT column by columnn. See README.md for examples.}
 
-\item{\code{set_variable(variable_name, variable_value)}}{A method to set variables (constants) for a node. Takes the variable_name and 
+\item{\code{set_variable(variable_name, variable_value)}}{A method to set variables (constants) for a node. Takes the variable_name and
 variable_value inputs which define a new variable (constant) for the node.}
 }}
 

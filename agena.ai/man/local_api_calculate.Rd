@@ -11,7 +11,7 @@ local_api_calculate(model, dataSet, output)
 
 \item{dataSet}{a dataSet in the model}
 
-\item{output}{file name for the output json}
+\item{output}{file name for the output json - just the filename using the working directory, not a full file path}
 }
 \value{
 a json file for the model with results
