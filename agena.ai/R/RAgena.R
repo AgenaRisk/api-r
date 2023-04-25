@@ -16,6 +16,7 @@
 #' @field partitions node expression partitions
 #' @field variables node variables or constants
 #' @export
+#' @importFrom methods new
 Node <- setRefClass("Node",
                     fields = list(id = "character",
                                   name = "character",
@@ -64,36 +65,36 @@ Node <- setRefClass("Node",
                         }
                       },
                       initialize = function(id, name = NULL, description = NULL, type = NULL, simulated = FALSE, states = NULL){
-                        
+
                         'Creates a new Node object, a unique id is required, other fields are filled with defaults unless specified.
                         Node id, name, description, type, states, and whether it is a simulation or regular node do not depend on its edges and parents in a network,
                         a Node object can be defined with all this information outside a Network as well.
                         To add/remove/modify parents, distr_type, probabilities, expressions, and partitions; use the corresponding method.'
-                        
+
                         #assigning $id - mandatory input to create a new Node object
                         .self$id <<- id
-                        
+
                         #assigning $name - input name if given, id otherwise
                         if (is.null(name)) {
                           .self$name <<- id
                         } else {
                           .self$name <<- name
                         }
-                        
+
                         #assigning $description - input desc if given, New Node Object otherwise
                         if (is.null(description)) {
                           .self$description <<- "New Node"
                         } else {
                           .self$description <<- description
                         }
-                        
+
                         #setting $simulated - false by default
                         if (simulated) {
                           .self$simulated <<- TRUE
                         } else {
                           .self$simulated <<- FALSE
                         }
-                        
+
                         #setting $type - Boolean by default, input type if given correctly
                         if (.self$simulated) {
                           if (is.null(type)) {
@@ -134,7 +135,7 @@ Node <- setRefClass("Node",
                           } else { #if input states given, check if it's fine based on type
                             if (.self$type == "Boolean") {
                               if (length(states) == 2) { #if Boolean and input states have two names, use them
-                                .self$states <<- states 
+                                .self$states <<- states
                               } else { #if Boolean and input states do not have two names, use default
                                 .self$states <<- c("False", "True")
                               }
@@ -143,9 +144,9 @@ Node <- setRefClass("Node",
                             } else {
                               .self$states <<- NULL
                             }
-                          } 
+                          }
                         }
-                        
+
                         #sensible defaults are assigned to probabilitiess/expressions which will be rewritten with the specific methods
                         if (.self$simulated) {
                           .self$distr_type <<- "Expression"
@@ -164,9 +165,9 @@ Node <- setRefClass("Node",
                         }
                       },
                       get_parents = function() {
-                        
+
                         'A method to list all the existing parent nodes of a Node.'
-                        
+
                         parList <- c()
                         if (length(.self$parents)>0) {
                           for (i in seq_along(.self$parents)) {
@@ -179,11 +180,11 @@ Node <- setRefClass("Node",
                         return(parList)
                       },
                       add_parent = function(newParent){
-                        
+
                         'Adds a Node object as a new parent node to the current Node object and resets/resizes the NPT values and expressions of the Node as needed.
                         Parents list of a Node object is a list of other Node objects.
                         The input parameter of the function is a Node object variable. A good practice is to use Node ids as their variable names.'
-                        
+
                         temp_par_list <- c()
                         for (pr in .self$parents) {
                           temp_par_list <- append(temp_par_list, pr$id)
@@ -191,7 +192,7 @@ Node <- setRefClass("Node",
                         if (!(newParent$id %in% temp_par_list)) {
                           parents <<- append(parents, newParent)
                         }
-                        
+
                         if (.self$distr_type == "Manual") {
                           #update probabilities when parent added (reset to uniform with correct number of values)
                           updated_probs <- vector(mode = "list", length = length(.self$states))
@@ -201,22 +202,22 @@ Node <- setRefClass("Node",
                               temp_length <- temp_length * length(prt$states)
                             }
                           }
-                          
+
                           .self$set_probabilities(updated_probs)
                           for (i in seq_along(.self$probabilities)) {
                             probabilities[[i]] <<- rep(1/length(.self$probabilities), temp_length)
                           }
-                          
+
                           cat("Node", newParent$id, "has been added to the parents list of", .self$id, "\nNPT values for", .self$id, "are reset to uniform\n")
                         } else {
                           cat("Node", newParent$id, "has been added to the parents list of", .self$id, "\nNow you can use", newParent$id, "in the expression of", .self$id, "\n")
                         }
                       },
                       addParent_byID = function(newParentID, varList) {
-                        
+
                         'This is a method to add parent Nodes by their ids for cmpx parser capabilities.
                         To add parents to Node objects, please use $add_parent(Node) method.'
-                        
+
                         for (i in seq_along(varList)) {
                           if (newParentID == varList[[i]]$id) {
                             .self$add_parent(varList[[i]])
@@ -225,7 +226,7 @@ Node <- setRefClass("Node",
                         #This does not do any smart adjustments to NPTs/expressions - only used in cmpx parser
                       },
                       remove_parent = function(oldParent) {
-                        
+
                         'Removes a Node object from parents of the current Node object and resets/resizes the NPT values and expressions of the Node as needed.
                         The input parameter of the function is a Node object variable. A good practice is to use Node ids as their variable names.'
                         if (oldParent$id %in% .self$get_parents()) {
@@ -236,7 +237,7 @@ Node <- setRefClass("Node",
                             }
                           }
                         }
-                        
+
                         if (.self$distr_type == "Manual") {
                           updated_probs <- vector(mode = "list", length = length(.self$states))
                           temp_length <- 1
@@ -245,7 +246,7 @@ Node <- setRefClass("Node",
                               temp_length <- temp_length * length(prt$states)
                             }
                           }
-                          
+
                           .self$set_probabilities(updated_probs)
                           for (i in seq_along(.self$probabilities)) {
                             probabilities[[i]] <<- rep(1/length(.self$probabilities), temp_length)
@@ -275,12 +276,12 @@ Node <- setRefClass("Node",
                         }
                       },
                       set_distribution_type = function(new_distr_type) {
-                        
-                        'A method to set the table type (distr_type) of a node. If a Node is simulated, 
-                        its table type can be "Expression" or "Partitioned" - the latter is only if the 
-                        node has parent nodes. If a Node is not simulated, its table type can be "Manual", 
+
+                        'A method to set the table type (distr_type) of a node. If a Node is simulated,
+                        its table type can be "Expression" or "Partitioned" - the latter is only if the
+                        node has parent nodes. If a Node is not simulated, its table type can be "Manual",
                         "Expression", or "Partitioned Expression (if the node has parent nodes)".'
-                        
+
                         if (.self$simulated) {
                           if (new_distr_type == "Partitioned" && length(.self$parents) > 0) {
                               distr_type <<- "Partitioned" ######if successfully changed to Partitioned, we need to reset temp default expressions
@@ -292,9 +293,9 @@ Node <- setRefClass("Node",
                           if (new_distr_type == "Manual" || new_distr_type == "Expression") {
                             distr_type <<- new_distr_type
                           } else if (new_distr_type == "Partitioned") { ######if successfully changed to Partitioned, we need to reset temp default expressions
-                              if (length(.self$parents > 0)) { 
+                              if (length(.self$parents > 0)) {
                                 distr_type <<- new_distr_type
-                              } else { 
+                              } else {
                                 distr_type <<- "Expression" #if Node has no parents, do not allow Partitioned
                                 cat("Node", .self$id, "has no parents. Distribution type is set to Expression instead.\n")
                               }
@@ -305,13 +306,13 @@ Node <- setRefClass("Node",
                         }
                       },
                       set_probabilities = function(new_probs, by_rows=TRUE) {
-                        
+
                         'The method to set the probability values if the table type (distr_type) of a Node is "Manual".
-                        new_probs is a list of numerical values, and the length of the input list depends on the number 
+                        new_probs is a list of numerical values, and the length of the input list depends on the number
                         of the states of the node and of its parents.
-                        
-                        You can format the input list in two different orders. If the parameter by_rows is set to true, 
-                        the method will read the input list to fill in the NPT row by row; if set to false, the method 
+
+                        You can format the input list in two different orders. If the parameter by_rows is set to true,
+                        the method will read the input list to fill in the NPT row by row; if set to false, the method
                         will read the input list to fill in the NPT column by columnn. See README.md for examples.'
                         if (by_rows) {
                           if (!.self$simulated && .self$distr_type == "Manual" && (.self$type != "ContinuousInterval" || .self$type != "IntegerInterval")) {
@@ -322,7 +323,7 @@ Node <- setRefClass("Node",
                                   temp_length <- temp_length * length(prt$states)
                                 }
                               }
-                              
+
                               subset_length_control <- 1
                               for (subset in new_probs) {
                                 if (length(subset) == temp_length) {
@@ -331,7 +332,7 @@ Node <- setRefClass("Node",
                                   subset_length_control <- subset_length_control * 0
                                 }
                               }
-                              
+
                               ######need another control to check probability sums are 1
                               if (subset_length_control == 1) {
                                 probabilities <<- new_probs
@@ -346,7 +347,7 @@ Node <- setRefClass("Node",
                                 temp_length <- temp_length * length(prt$states)
                               }
                             }
-                            
+
                             if (length(new_probs) == temp_length) {
                               subset_length_control <- 1
                               for (subset in new_probs) {
@@ -357,11 +358,11 @@ Node <- setRefClass("Node",
                                 }
                               }
                             }
-                            
+
                             if (subset_length_control == 1) {
                               for (i in seq_along(new_probs)) {
                                 for (j in seq_along(new_probs[[i]])) {
-                                  probabilities[[j]][[i]] <<- new_probs[[i]][[j]] 
+                                  probabilities[[j]][[i]] <<- new_probs[[i]][[j]]
                                 }
                               }
                             }
@@ -369,17 +370,17 @@ Node <- setRefClass("Node",
                         }
                       },
                       set_expressions = function(new_expr,partition_parents=NULL) {
-                        
-                        'The method to set the probability values if the table type (distr_type) of a Node is "Expression" 
-                        or "Partitioned". If the table type is "Expression", new_expr is a single string and partition_parents 
-                        is left NULL. If the table type is "Partitioned", new_expr is a list of expressions for each parent 
+
+                        'The method to set the probability values if the table type (distr_type) of a Node is "Expression"
+                        or "Partitioned". If the table type is "Expression", new_expr is a single string and partition_parents
+                        is left NULL. If the table type is "Partitioned", new_expr is a list of expressions for each parent
                         state, and partition_parents is a list of strings for each partitioned parent node id.'
-                        
+
                         if(!is.null(partition_parents)) {
                           partitions <<- partition_parents
-                          expressions <<- new_expr 
+                          expressions <<- new_expr
                         } else {
-                            expressions <<- new_expr 
+                            expressions <<- new_expr
                         }
                       },
                       get_variables = function(){
@@ -395,17 +396,17 @@ Node <- setRefClass("Node",
                         return(varList)
                       },
                       set_variable = function(variable_name, variable_value) {
-                        
-                        'A method to set variables (constants) for a node. Takes the variable_name and 
+
+                        'A method to set variables (constants) for a node. Takes the variable_name and
                         variable_value inputs which define a new variable (constant) for the node.'
-                        
+
                         cur_vars <- .self$get_variables()
                         if (is.null(cur_vars)){
                           var_num <- 0
                         } else {
                           var_num <- length(cur_vars)
                         }
-                        
+
                         if(!is.null(cur_vars) && variable_name %in% cur_vars){
                           cat("There is already a variable defined with this name")
                         } else {
@@ -413,11 +414,11 @@ Node <- setRefClass("Node",
                         }
                       },
                       remove_variable = function(variable_name){
-                        
+
                         'A method to remove one of the existing variables (constants) from a node, using the variable_name.'
-                        
+
                         cur_vars <- .self$get_variables()
-                        
+
                         if(is.null(cur_vars)){
                           cat("This node has no variables")
                         } else {
@@ -436,15 +437,15 @@ Node <- setRefClass("Node",
 
 #' BN Network object
 #'
-#' These represent each network in a BN. Networks consist of nodes and 
-#' in a BN model there might be more than one network. These networks can 
-#' also be linked to each other with the use of input and output nodes. For such 
+#' These represent each network in a BN. Networks consist of nodes and
+#' in a BN model there might be more than one network. These networks can
+#' also be linked to each other with the use of input and output nodes. For such
 #' links, see Model$networkLinks.
 #'
-#' @field id network id 
-#' @field name network display name 
-#' @field description network description 
-#' @field nodes list of nodes in the network 
+#' @field id network id
+#' @field name network display name
+#' @field description network description
+#' @field nodes list of nodes in the network
 #'
 #' @export
 Network <- setRefClass("Network",
@@ -462,35 +463,35 @@ Network <- setRefClass("Network",
                            cat(.self$nodes[[length(.self$nodes)]]$name)
                          },
                          initialize = function(id, name = NULL, description = NULL, nodes = NULL) {
-                           
+
                            'Creates a new Network object, a unique id is required,
                            other fields are filled with defauls unless specified.'
-                           
+
                            #assigning $id - mandatory input to create a new Network object
                            .self$id <<- id
-                           
+
                            #assigning $name - input name if given, id otherwise
                            if(is.null(name)){
                              .self$name <<- id
                            } else{
                              .self$name <<- name
                            }
-                           
+
                            #assigning $description - input desc if given, New Node Object otherwise
                            if (is.null(description)) {
                              .self$description <<- "New Network"
                            } else {
                              .self$description <<- description
                            }
-                           
+
                            if (!is.null(nodes)) {
                              .self$nodes <<- nodes
                            }
                          },
                          plot = function(){
-                           
+
                            'A method to plot the graphical structure of a BN network.'
-                           
+
                            plot_network(.self)
                          },
                          get_nodes = function() {
@@ -505,24 +506,24 @@ Network <- setRefClass("Network",
                            }
                            return(nodeList)
                          },
-                         
+
                          add_node = function(newNode) {
                            'A method to add new Node objects to a Network.
                            Note that adding a new Node to the network does not automatically add its parents to the network.
                            You need to add all the parents separately too.'
-                           
+
                            if (newNode$id %in% .self$get_nodes()) {
                              cat("There is already a node in the network with this ID")
                            } else {
                              nodes <<- append(nodes,newNode)
                              cat(newNode$name, "is successfully added to the network")
                            }
-                           
+
                          },
                          remove_node = function(oldNode) {
-                           'A method to remove an existing Node object from the network. 
+                           'A method to remove an existing Node object from the network.
                            Note that removing a Node from a network does not automatically remove it from its
-                           previous parent-child relationships in the network. You need to adjust such relationships 
+                           previous parent-child relationships in the network. You need to adjust such relationships
                            separately on the Node level.'
                            if (oldNode$id %in% .self$get_nodes()) {
                              for (i in seq_along(.self$nodes)) {
@@ -541,9 +542,9 @@ Network <- setRefClass("Network",
 
 #' Dataset
 #'
-#' @field id dataSet id 
-#' @field observations list ob observations. 
-#' @field results list of inference results. 
+#' @field id dataSet id
+#' @field observations list ob observations.
+#' @field results list of inference results.
 #'
 #' @export
 Dataset <- setRefClass("Dataset",
@@ -556,18 +557,18 @@ Dataset <- setRefClass("Dataset",
                              if(!is.null(observations)){
                                .self$observations <<- observations
                              }
-                             
+
                          }
-                       )) 
+                       ))
 
 
 #' BN Model object
 #'
-#' @field id model id 
-#' @field networks list of networks in the model 
-#' @field dataSets list of dataSets in the model 
-#' @field networkLinks list of network links in the model 
-#' @field settings list of settings of the model 
+#' @field id model id
+#' @field networks list of networks in the model
+#' @field dataSets list of dataSets in the model
+#' @field networkLinks list of network links in the model
+#' @field settings list of settings of the model
 #'
 #' @export
 Model <- setRefClass("Model",
@@ -586,7 +587,7 @@ Model <- setRefClass("Model",
                          }
                        },
                        initialize = function(id=NULL, networks, from_cmpx=FALSE, dataSets = NULL, networkLinks = NULL, settings = NULL){
-                         
+
                          'Creates a new Model object, a list of networks (at least one) is required.
                          id and settings are set with defaults unless specified.'
                          if(is.null(settings)){
@@ -600,7 +601,7 @@ Model <- setRefClass("Model",
                          } else {
                            .self$settings <<- settings
                          }
-                         
+
                          if(is.null(id)){
                            .self$id <<- paste(networks[[1]]$id,"Model")
                          } else{
@@ -608,16 +609,16 @@ Model <- setRefClass("Model",
                          }
                          .self$networks <<- networks
                          if(!from_cmpx){
-                           .self$dataSets[[1]] <- Dataset$new(id="Scenario 1",observations=NULL) 
+                           .self$dataSets[[1]] <- Dataset$new(id="Scenario 1",observations=NULL)
                          }
                          if(from_cmpx){
                            if(!is.null(dataSets)){
-                             .self$dataSets <<- dataSets 
+                             .self$dataSets <<- dataSets
                            }
                            if(!is.null(networkLinks)){
                              .self$networkLinks <<- networkLinks
                            }
-                           
+
                          }
                        },
                        get_networks = function() {
@@ -634,8 +635,8 @@ Model <- setRefClass("Model",
                          return(networkList)
                        },
                        add_network = function(newNetwork){
-                         'A method to add a new Network object to the networks field of a Model object. 
-                         The input newNetwork is a Network object and it is added to the model if it is 
+                         'A method to add a new Network object to the networks field of a Model object.
+                         The input newNetwork is a Network object and it is added to the model if it is
                          not already in it.'
                          if (newNetwork$id %in% .self$get_networks()) {
                            cat("There is already a network in the model with this ID")
@@ -645,8 +646,8 @@ Model <- setRefClass("Model",
                          }
                        },
                        remove_network = function(oldNetwork) {
-                         'A method to remove an existing Network object from the model. 
-                         Note that removing a Node from a network does not automatically remove its possible network links 
+                         'A method to remove an existing Network object from the model.
+                         Note that removing a Node from a network does not automatically remove its possible network links
                          to other networks in the model. networkLinks field of a Model should be adjusted accordingly if needed.'
                          if (oldNetwork$id %in% .self$get_networks()) {
                            for (i in seq_along(.self$networks)) {
@@ -655,16 +656,16 @@ Model <- setRefClass("Model",
                                break
                              }
                            }
-                           
+
                            cat(oldNetwork$id, "is successfully removed from the model. If", oldNetwork$id, "had any links to other networks, make sure to adjust network links accordingly")
                          } else {
                            cat("This network is not in the model")
                          }
                        },
                        add_network_link = function(source_network, source_node, target_network, target_node, link_type, pass_state=NULL){
-                         'This is the method to add links to a model between its networks. 
-                         These links start from a "source node" in a network and go to a "target node" in another network. 
-                         To create the link, the source and target nodes in the networks need to be specified together 
+                         'This is the method to add links to a model between its networks.
+                         These links start from a "source node" in a network and go to a "target node" in another network.
+                         To create the link, the source and target nodes in the networks need to be specified together
                          with the network they belong to (by the Node and Network ids). See README.md for details.'
                          for (i in seq_along(.self$networks)) {
                            if (source_network == .self$networks[[i]]$id) {
@@ -676,7 +677,7 @@ Model <- setRefClass("Model",
                              }
                            }
                          }
-                         
+
                          for (i in seq_along(.self$networks)) {
                            if (target_network == .self$networks[[i]]$id) {
                              in_network <- .self$networks[[i]]
@@ -687,14 +688,14 @@ Model <- setRefClass("Model",
                              }
                            }
                          }
-                         
+
                          targets <- c()
                          if(length(.self$networkLinks)>0) {
                            for (i in seq_along(.self$networkLinks)) {
                              targets <- append(targets, .self$networkLinks[[i]]$targetNode)
                            }
                          }
-                         
+
                          if (length(in_node$parents)>0) {
                            cat("Target node is a child node in its network, it cannot be a target node")
                          } else {
@@ -704,7 +705,7 @@ Model <- setRefClass("Model",
                              num_list <- c("ContinuousInterval", "IntegerInterval", "DiscreteReal")
                              num_intv_list <- c("ContinuousInterval", "IntegerInterval")
                              val_check <- 0
-                             
+
                              if (link_type == "Marginals") {
                                if (!out_node$simulated && !in_node$simulated) {
                                  val_check <- val_check
@@ -716,8 +717,8 @@ Model <- setRefClass("Model",
                                  }
                                }
                              }
-                             
-                             if (link_type %in% c("Mean", "Median", "Variance", "StandardDeviation", 
+
+                             if (link_type %in% c("Mean", "Median", "Variance", "StandardDeviation",
                                                   "LowerPercentile", "UpperPercentile")) {
                                if (out_node$type %in% num_list && in_node$simulated){
                                  val_check <- val_check
@@ -725,7 +726,7 @@ Model <- setRefClass("Model",
                                  val_check <- val_check + 1
                                }
                              }
-                             
+
                              if (link_type == "State") {
                                if(!(out_node$type %in% num_intv_list) && in_node$simulated) {
                                  val_check <- val_check
@@ -733,7 +734,7 @@ Model <- setRefClass("Model",
                                  val_check <- val_check + 1
                                }
                              }
-                             
+
                              if(val_check == 0){
                                if (link_type == "State"){
                                  if (is.null(pass_state)){
@@ -744,7 +745,7 @@ Model <- setRefClass("Model",
                                                    targetNode = target_node,
                                                    targetNetwork = target_network,
                                                    passState = pass_state,
-                                                   type = link_type) 
+                                                   type = link_type)
                                  }
                                } else {
                                  newLink <- list(sourceNode = source_node,
@@ -753,7 +754,7 @@ Model <- setRefClass("Model",
                                                  targetNetwork = target_network,
                                                  type = link_type)
                                }
-                               
+
                                cur_length <- length(.self$networkLinks)
                                networkLinks[[cur_length+1]] <<- newLink
                              } else {
@@ -763,7 +764,7 @@ Model <- setRefClass("Model",
                            }
                        },
                        remove_network_link = function(source_network,source_node,target_network,target_node){
-                         'A method to remove network links, given the ids of the source and target nodes 
+                         'A method to remove network links, given the ids of the source and target nodes
                          (and the networks they belong to).'
                          if(length(.self$networkLinks)>0){
                            for (i in seq_along(.self$networkLinks)){
@@ -776,7 +777,7 @@ Model <- setRefClass("Model",
                              } else {
                                cat("This network link is not in the model\n")
                              }
-                           } 
+                           }
                          } else {
                            cat("This model does not have any network links\n")
                          }
@@ -786,14 +787,14 @@ Model <- setRefClass("Model",
                          networkLinks <<- list()
                        },
                        create_dataSet = function(id){
-                         'It is possible to add multiple scenarios to a model. These scenarios are new DataSet 
-                         objects added to the dataSets field of a model. Initially these scenarios have no observations 
+                         'It is possible to add multiple scenarios to a model. These scenarios are new DataSet
+                         objects added to the dataSets field of a model. Initially these scenarios have no observations
                          and are only defined by their ids. The scenarios are populated with the enter_observation() function.'
                          dataSets <<- append(dataSets,Dataset$new(id=id, observations=NULL))
                        },
                        import_results = function(result_file){
-                         'A method to import results of a calculated dataSet from a json file. This correct format for 
-                         the results json file for this method is the file generated with the local agena.ai developer 
+                         'A method to import results of a calculated dataSet from a json file. This correct format for
+                         the results json file for this method is the file generated with the local agena.ai developer
                          API calculation (see README.md for details.'
                          dataset_import(.self, result_file)
                        },
@@ -809,10 +810,10 @@ Model <- setRefClass("Model",
                            scenList <- NULL
                          }
                          return(scenList)
-                         
+
                        },
                        remove_dataSet = function(olddataSet){
-                         'A method to remove an existing scenario from the model. Input parameter olddataSet 
+                         'A method to remove an existing scenario from the model. Input parameter olddataSet
                          is the string which is the id of a dataset (scenario).'
                          if (olddataSet %in% .self$get_dataSets()) {
                            for (i in seq_along(.self$dataSets)) {
@@ -821,7 +822,7 @@ Model <- setRefClass("Model",
                                break
                              }
                            }
-                           
+
                            cat(olddataSet, "is successfully removed from the model's dataSets")
                          } else {
                            cat("This dataSet is not in the model")
@@ -838,8 +839,8 @@ Model <- setRefClass("Model",
                          write.csv(output_table, file_name, row.names = FALSE)
                        },
                        enter_observation = function(dataSet=NULL, node, network, value, variable_input = FALSE, soft_evidence = FALSE){
-                         'A method to enter observation to a model. To enter the observation to a specific dataset (scenario), the dataset id 
-                         must be given as the input parameter dateSet. If dataSet is left NULL, the entered observation will by default go to 
+                         'A method to enter observation to a model. To enter the observation to a specific dataset (scenario), the dataset id
+                         must be given as the input parameter dateSet. If dataSet is left NULL, the entered observation will by default go to
                          "Scenario 1". This means that if there is no extra datasets created for a model (which by default comes with "Scenario 1"),
                          any observation entered will be set for this dataset. See README.md for details and examples.'
                          if(is.null(dataSet)){
@@ -860,7 +861,7 @@ Model <- setRefClass("Model",
                                              network = network,
                                              constantName = value,
                                              entries = list())
-                             
+
                              for (i in seq_along(.self$networks)){
                                if(.self$networks[[i]]$id == network) {
                                  this_network <- .self$networks[[i]]
@@ -878,8 +879,8 @@ Model <- setRefClass("Model",
                              }
                              new_obs$entries[[1]] <- list(weight = 1, value = obs_value)
                            }
-                           
-                           
+
+
                            exist_check <- 0
                            if(length(dataSets[[1]]$observations)>0){
                              for (i in seq_along(dataSets[[1]]$observations)){
@@ -890,14 +891,14 @@ Model <- setRefClass("Model",
                              }
                            }
 
-                           
+
                            if(exist_check == 0){
                              cur_length <- length(dataSets[[1]]$observations)
                              dataSets[[1]]$observations[[cur_length+1]] <<- new_obs
                            }
 
                          } else {
-                           
+
                            if(!variable_input){
                              new_obs <- list(node=node,
                                              network = network,
@@ -909,13 +910,13 @@ Model <- setRefClass("Model",
                                for (i in 1:obs_num){
                                  new_obs$entries[[i]] <- list(weight = as.numeric(value[2*i]), value = value[2*i-1])
                                }
-                             }                           
+                             }
                              } else {
                              new_obs <- list(node=node,
                                              network = network,
                                              constantName = value,
                                              entries = list())
-                             
+
                              for (i in seq_along(.self$networks)){
                                if(.self$networks[[i]]$id == network) {
                                  this_network <- .self$networks[[i]]
@@ -933,11 +934,11 @@ Model <- setRefClass("Model",
                              }
                              new_obs$entries[[1]] <- list(weight = 1, value = obs_value)
                            }
-                           
-                           
+
+
                            for (i in seq_along(dataSets)){
                              if(dataSet == dataSets[[i]]$id){
-                               
+
                                exist_check <- 0
                                if(length(dataSets[[i]]$observations)>0){
                                  for (j in seq_along(dataSets[[i]]$observations)){
@@ -947,8 +948,8 @@ Model <- setRefClass("Model",
                                    }
                                  }
                                }
-                               
-                               
+
+
                                if(exist_check == 0){
                                  cur_length <- length(dataSets[[i]]$observations)
                                  dataSets[[i]]$observations[[cur_length+1]] <<- new_obs
@@ -956,14 +957,14 @@ Model <- setRefClass("Model",
 
                              }
                            }
-                           
+
                          }
                        },
                        remove_observation = function(dataSet=NULL, node, network){
-                         'A method to remove a specific observation from the model. It requires the id of the node which 
+                         'A method to remove a specific observation from the model. It requires the id of the node which
                          has the observation to be removed and the id of the network the node belongs to.'
                          if(is.null(dataSet)){
-                           
+
                            for (i in seq_along(dataSets[[1]]$observations)){
                              if(node == dataSets[[1]]$observations[[i]]$node && network == dataSets[[1]]$observations[[i]]$network){
                                dataSets[[1]]$observations <<- dataSets[[1]]$observations[-i]
@@ -990,14 +991,14 @@ Model <- setRefClass("Model",
                            }}
                        },
                        clear_all_observations = function(){
-                         'A method to clear all observations defined in a model. This function removes all observations 
+                         'A method to clear all observations defined in a model. This function removes all observations
                          from all datasets (scenarios).'
                          for (i in seq_along(.self$dataSets)){
                            dataSets[[i]]$observations <<- list()
                          }
                        },
                        change_settings = function(settings){
-                         'A method to change model settings. The input parameter settings must be a list with the correctly 
+                         'A method to change model settings. The input parameter settings must be a list with the correctly
                          named elements, see README.md for example.'
                          .self$settings <<- settings
                          cat("Model settings updated")
@@ -1015,12 +1016,12 @@ Model <- setRefClass("Model",
                        },
                        to_cmpx = function(filename=NULL){
                          'A method to export the Model to a .cmpx file. This method passes on all the information about the model,
-                         its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format 
+                         its datasets, its networks, their nodes, and model settings to a .cmpx file in the correct format
                          readable by agena.ai.
                          If the input parameter filename is not specified, it will use the Model$id for the filename.'
                            json_list <- generate_cmpx(.self)
                            json_object <- rjson::toJSON(json_list)
-                         
+
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".cmpx")
                          } else {
@@ -1030,54 +1031,54 @@ Model <- setRefClass("Model",
                        },
                        to_json = function(filename=NULL){
                          'A method to export the Model to a .json file. This method passes on all the information about the model,
-                         its datasets, its networks, their nodes, and model settings to a .json file in the correct format 
+                         its datasets, its networks, their nodes, and model settings to a .json file in the correct format
                          readable by agena.ai.
                          If the input parameter filename is not specified, it will use the Model$id for the filename.'
                            json_list <- generate_cmpx(.self)
                            json_object <- rjson::toJSON(json_list)
-                         
+
                          if(is.null(filename)){
                            file_name <- paste0(.self$id,".json")
                          } else {
                            file_name <- paste0(filename,".json")
                          }
-                         
+
                          write(json_object,file_name)
                        }
-                     )) 
+                     ))
 
 #' Load a Model from CMPX
 #'
 #' This function reads an input agena.ai model file with the .cmpx extension
-#' to create an R model object. The model object includes the networks and 
+#' to create an R model object. The model object includes the networks and
 #' the nodes of the imported model.
 #'
 #' @param modelPath Path to the input file
 #' @return An R model object
 #' @export
 from_cmpx <- function(modelPath){
-  
+
   #read CMPX file, assign elements to R lists
   cmpx_input <- rjson::fromJSON(file=modelPath)
-  
+
   cmpx_model <- cmpx_input$model
   cmpx_networks <- cmpx_model$networks
-  cmpx_dataSets <- cmpx_model$dataSets 
-  cmpx_networkLinks <- cmpx_model$links 
+  cmpx_dataSets <- cmpx_model$dataSets
+  cmpx_networkLinks <- cmpx_model$links
   cmpx_settings <- cmpx_model$settings
-  
+
   #creating empty lists for Network and Node objects with the correct number of Networks in the CMPX model
   networks <- vector(mode = "list",length = length(cmpx_networks))
   nodes <- vector(mode = "list",length = length(cmpx_networks))
   links <- vector(mode = "list",length = length(cmpx_networks))
   datasets <- vector(mode = "list",length = length(cmpx_dataSets))
-  
+
   #filling in the list of Network objects with each network in the CMPX model
   for (i in seq_along(cmpx_networks)) {
     networks[[i]] <- Network$new(id = cmpx_networks[[i]]$id,
                                  name = cmpx_networks[[i]]$name,
                                  description = cmpx_networks[[i]]$description)
-    
+
     #filling in the list of Node objects with each node of each network
     #keep in mind this list is two dimensional, each list element is a list of Nodes itself
     for (j in seq_along(cmpx_networks[[i]]$nodes)) {
@@ -1085,15 +1086,15 @@ from_cmpx <- function(modelPath){
                                   name = cmpx_networks[[i]]$nodes[[j]]$name,
                                   description = cmpx_networks[[i]]$nodes[[j]]$description,
                                   type = cmpx_networks[[i]]$nodes[[j]]$configuration$type)
-      
+
       if ((is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$simulated)) || (cmpx_networks[[i]]$nodes[[j]]$configuration$simulated == FALSE)) {
         nodes[[i]][[j]]$simulated <- FALSE
       } else {
         nodes[[i]][[j]]$simulated <- TRUE
       }
-      
+
       nodes[[i]][[j]]$distr_type = cmpx_networks[[i]]$nodes[[j]]$configuration$table$type
-      
+
     }
     networks[[i]]$nodes <- nodes[[i]]
     links[[i]] <- cmpx_networks[[i]]$links
@@ -1108,8 +1109,8 @@ from_cmpx <- function(modelPath){
       }
     }
   }
-  
-  
+
+
   for (i in seq_along(cmpx_networks)) {
     for (j in seq_along(cmpx_networks[[i]]$nodes)) {
       if (!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$states)) {
@@ -1119,22 +1120,22 @@ from_cmpx <- function(modelPath){
           nodes[[i]][[j]]$probabilities[[k]] <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$probabilities[[k]]
         }
       }
-      
+
       if (!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions)) {
         nodes[[i]][[j]]$expressions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$expressions
       }
-      
+
       if (!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions)) {
         nodes[[i]][[j]]$partitions <- cmpx_networks[[i]]$nodes[[j]]$configuration$table$partitions
       }
     }
   }
-  
+
   for (i in seq_along(networks)) {
     for (j in seq_along(networks[[i]]$nodes)) {
       if (!is.null(cmpx_networks[[i]]$nodes[[j]]$configuration$variables)) {
         nodes[[i]][[j]]$variables <- list()
-        
+
         for (k in seq_along(cmpx_networks[[i]]$nodes[[j]]$configuration$variables)) {
           nodes[[i]][[j]]$variables[[k]] <- list(cmpx_networks[[i]]$nodes[[j]]$configuration$variables[[k]]$name,
                                                  cmpx_networks[[i]]$nodes[[j]]$configuration$variables[[k]]$value)
@@ -1142,26 +1143,26 @@ from_cmpx <- function(modelPath){
 
       }
 
-      
+
     }}
 
-  
+
   for (i in seq_along(cmpx_dataSets)) {
     datasets[[i]] <- Dataset$new(id = cmpx_dataSets[[i]]$id, observations=NULL)
-    
+
     datasets[[i]]$observations <- cmpx_dataSets[[i]]$observations
     if (!is.null(cmpx_dataSets[[i]]$results)) {
       datasets[[i]]$results <- cmpx_dataSets[[i]]$results
     }
   }
-  
+
 
   outputModel <- Model$new(from_cmpx=TRUE,
                            networks = networks,
                            networkLinks = cmpx_networkLinks,
                            dataSets = datasets,
                            settings = cmpx_settings)
-  
+
   return(outputModel)
 }
 
@@ -1169,53 +1170,53 @@ from_cmpx <- function(modelPath){
 #' Generate a CMPX file from R Model
 #'
 #' This function generates a .cmpx file for an agena.ai model
-#' based on an R model object 
+#' based on an R model object
 #'
 #' @param inputModel an R model object
 #' @return cmpx file
 #' @export
 generate_cmpx <- function(inputModel) {
-  
+
   settings_list <- inputModel$settings
-  
+
   #creating empty lists and sublists with correct length to be filled in later
   networks_list <- vector(mode = "list", length = length(inputModel$networks))
-  
+
   nodes_list <- vector(mode = "list", length = length(inputModel$networks))
   for (i in seq_along(nodes_list)) {
     nodes_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
-  
+
   config_list <- vector(mode = "list", length = length(inputModel$networks))
   for (i in seq_along(config_list)) {
     config_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
-  
+
   table_list <- vector(mode = "list", length = length(inputModel$networks))
   for (i in seq_along(table_list)) {
     table_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
-  
+
   variables_list <- vector(mode = "list", length = length(inputModel$networks))
   for (i in seq_along(table_list)) {
     variables_list[[i]] <- vector(mode = "list", length = length(inputModel$networks[[i]]$nodes))
   }
-  
+
   datasets_list <- vector(mode = "list", length = length(inputModel$dataSets))
-  
+
   obs_list <- vector(mode = "list", length = length(inputModel$dataSets))
   for (i in seq_along(obs_list)){
     obs_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$observations))
   }
-  
+
   res_list <- vector(mode = "list", length = length(inputModel$dataSets))
   for (i in seq_along(obs_list)){
     res_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$results))
   }
-  
 
-  
-  
+
+
+
   links_list <- vector(mode = "list", length = length(inputModel$networks))
   for (i in seq_along(nodes_list)) {
     links_amount <- 0
@@ -1224,8 +1225,8 @@ generate_cmpx <- function(inputModel) {
     }
     links_list[[i]] <- vector(mode = "list", length = links_amount)
   }
-  
-  
+
+
   #table_list generation
   for (i in seq_along(table_list)){
     for (j in seq_along(table_list[[i]])){
@@ -1258,26 +1259,26 @@ generate_cmpx <- function(inputModel) {
       }
     }
   }
-  
+
   #variables_list generation
   for (i in seq_along(variables_list)){
     for (j in seq_along(variables_list[[i]])){
-      
+
       if(length(inputModel$networks[[i]]$nodes[[j]]$variables)>0){
         temp_vars_length <- length(inputModel$networks[[i]]$nodes[[j]]$variables)
         variables_list[[i]][[j]] <- vector(mode = "list", length = temp_vars_length)
-        
+
         for (k in 1:temp_vars_length){
           variables_list[[i]][[j]][[k]] <- list(name = inputModel$networks[[i]]$nodes[[j]]$variables[[k]][[1]],
                                                 value = inputModel$networks[[i]]$nodes[[j]]$variables[[k]][[2]])
         }
       }
-      
+
 
     }}
-      
-      
-      
+
+
+
   for (i in seq_along(config_list)){
     for (j in seq_along(config_list[[i]])){
       config_list[[i]][[j]] <- list(type = inputModel$networks[[i]]$nodes[[j]]$type,
@@ -1296,9 +1297,9 @@ generate_cmpx <- function(inputModel) {
       }
     }
   }
-  
 
-  
+
+
   for (i in seq_along(nodes_list)) {
     for (j in seq_along(nodes_list[[i]])){
       nodes_list[[i]][[j]] <- list(id = inputModel$networks[[i]]$nodes[[j]]$id,
@@ -1307,10 +1308,10 @@ generate_cmpx <- function(inputModel) {
                                    configuration = config_list[[i]][[j]])
     }
   }
-  
+
   temp_parents_list <- list()
   temp_children_list <- list()
-  
+
   for (i in seq_along(inputModel$networks)){
     temp_parents_list[[i]] <- list()
     temp_children_list[[i]] <- list()
@@ -1323,16 +1324,16 @@ generate_cmpx <- function(inputModel) {
       }
     }
   }
-  
-  
+
+
   for (i in seq_along(links_list)) {
     for (j in seq_along(links_list[[i]])){
       links_list[[i]][[j]] <- list(parent = temp_parents_list[[i]][[j]],
                                    child = temp_children_list[[i]][[j]])
     }
   }
-  
-      
+
+
 
   for (i in seq_along(networks_list)) {
     networks_list[[i]] <- list(id = inputModel$networks[[i]]$id,
@@ -1341,17 +1342,17 @@ generate_cmpx <- function(inputModel) {
                                nodes = nodes_list[[i]],
                                links = links_list[[i]])
   }
-  
+
 
   if(length(inputModel$networkLinks) == 0){
     networklinks_list <- list()
   } else {
     networklinks_list <- inputModel$networkLinks
   }
-  
+
   if (length(inputModel$dataSets) == 1 && length(inputModel$dataSets[[1]]$observations) == 0) {
     datasets_list[[1]] <- list(id = inputModel$dataSets[[1]]$id,
-                               observations = inputModel$dataSets[[1]]$observations) 
+                               observations = inputModel$dataSets[[1]]$observations)
   } else {
     entries_list <- vector(mode = "list", length = length(inputModel$dataSets))
     for (i in seq_along(entries_list)) {
@@ -1360,7 +1361,7 @@ generate_cmpx <- function(inputModel) {
         entries_list[[i]][[j]] <- vector(mode = "list",length = length(inputModel$dataSets[[i]]$observations[[j]]$entries))
       }
     }
-    
+
     for (i in seq_along(datasets_list)) {
       for (j in seq_along(inputModel$dataSets[[i]]$observations)) {
         for (k in seq_along(inputModel$dataSets[[i]]$observations[[j]]$entries)){
@@ -1369,7 +1370,7 @@ generate_cmpx <- function(inputModel) {
         }
       }
     }
-    
+
     for (i in seq_along(datasets_list)) {
       for (j in seq_along(inputModel$dataSets[[i]]$observations)) {
         if (!is.null(inputModel$dataSets[[i]]$observations[[j]]$constantName)) {
@@ -1382,13 +1383,13 @@ generate_cmpx <- function(inputModel) {
                                      network = inputModel$dataSets[[i]]$observations[[j]]$network,
                                      entries = entries_list[[i]][[j]])
         }
-        
+
       }
       datasets_list[[i]] <- list(id = inputModel$dataSets[[i]]$id,
                                  observations = obs_list[[i]])
     }
   }
-  
+
   res_val_list <-  vector(mode = "list", length = length(inputModel$dataSets))
   if(length(inputModel$dataSets[[1]]$results)>0) {
     for (i in seq_along(res_val_list)) {
@@ -1401,8 +1402,8 @@ generate_cmpx <- function(inputModel) {
     }
   }
 
-  
-  
+
+
   sum_stat_list <- vector(mode = "list", length = length(inputModel$dataSets))
   for (i in seq_along(sum_stat_list)) {
     sum_stat_list[[i]] <- vector(mode = "list", length = length(inputModel$dataSets[[i]]$results))
@@ -1412,7 +1413,7 @@ generate_cmpx <- function(inputModel) {
       }
     }
   }
-  
+
   for (i in seq_along(inputModel$dataSets)) {
     if(length(inputModel$dataSets[[i]]$results)>0) {
       for (j in seq_along(inputModel$dataSets[[i]]$results)) {
@@ -1428,20 +1429,20 @@ generate_cmpx <- function(inputModel) {
       }
     }
   }
-  
+
   for (i in seq_along(datasets_list)) {
     if(length(inputModel$dataSets[[i]]$results) > 0) {
       datasets_list[[i]]$results <- res_list[[i]]
     }
-  
+
   }
-  
-  
+
+
   model_list <- list(settings = settings_list,
                      dataSets = datasets_list,
                      networks = networks_list,
                      links = networklinks_list)
-  
+
   json_list <- list(model = model_list)
   return(json_list)
 
@@ -1449,16 +1450,17 @@ generate_cmpx <- function(inputModel) {
 
 #' Create a json file of a BN model with observations
 #'
-#' This function takes an R Model objectand a CSV file of observations for cases 
-#' and creates a batch of datasets / cases for each row in the input data 
-#' and generates a .json file for the BN 
+#' This function takes an R Model objectand a CSV file of observations for cases
+#' and creates a batch of datasets / cases for each row in the input data
+#' and generates a .json file for the BN
 #'
 #' @param inputModel an R model object
 #' @param inputData CSV file of observations
 #' @return json file
 #' @export
+#' @importFrom utils read.csv
 create_batch_cases <- function(inputModel, inputData){
-  
+
   inputTable <- read.csv(file=inputData, check.names = FALSE, na.strings = c(""))
   col_headers <- names(inputTable)[-1]
   obs_nodes <- c()
@@ -1472,10 +1474,10 @@ create_batch_cases <- function(inputModel, inputData){
     temp_id <- as.character(as.character(inputTable[i,][[1]]))
     inputModel$create_dataSet(id = temp_id)
     for (j in seq_along(col_headers)){
-      
+
       if(!is.na(inputTable[i,][[j+1]])){
         inputModel$enter_observation(dataSet = temp_id,
-                                     node = obs_nodes[j], network = obs_networks[j], 
+                                     node = obs_nodes[j], network = obs_networks[j],
                                      value = inputTable[i,][[j+1]])
       }
 
@@ -1484,24 +1486,24 @@ create_batch_cases <- function(inputModel, inputData){
   }
   filename <- paste0(inputModel$id, "_Batch_Cases")
   inputModel$to_json(filename = filename)
-  
+
   for (i in seq_along(inputTable)){
     temp_id <- as.character(as.character(inputTable[i,][[1]]))
     inputModel$remove_dataSet(temp_id)
   }
-  
+
 }
 
 get_node_by_ID <- function(node_id, inputNetwork) {
   nodes <- inputNetwork$nodes
   node_ids <- inputNetwork$get_nodes()
-  
+
   for (i in seq_along(node_ids)) {
     if (node_id == node_ids[[i]]) {
       node <- nodes[[i]]
     }
   }
-  
+
   return(node)
 }
 
@@ -1522,10 +1524,10 @@ create_network_matrix <- function(inputNetwork) {
 }
 
 plot_network <- function(inputNetwork) {
-  
+
   edge_matrix <- create_network_matrix(inputNetwork)
   nodes <- inputNetwork$get_nodes()
-  
+
   edge_matrix_network <- new("graphAM", adjMat=edge_matrix, edgemode="directed")
   edge_matrix_network <- Rgraphviz::layoutGraph(edge_matrix_network)
 
@@ -1543,34 +1545,35 @@ colname_list_generator <- function(inputModel){
 }
 
 #' Create a CSV template for a model for batch observations
-#' 
-#' This function creates an empty CSV file with the correct format so that it can 
+#'
+#' This function creates an empty CSV file with the correct format so that it can
 #' be filled in and used for create_batch_bases.
 #'
 #' @param inputModel an R model object
 #' @return csv file
 #' @export
+#' @importFrom utils write.table
 create_csv_template <- function(inputModel){
   colname_list <- colname_list_generator(inputModel)
   filename <- paste0(inputModel$id,"_DataSet.csv")
-  
+
   write.table(t(colname_list),sep = ",", file = filename, row.names = FALSE, col.names = FALSE)
 }
 
 generate_results_csv <- function(inputModel){
-  
+
   results <- vector(mode = "list", length = length(inputModel$dataSets))
-  
+
   for (i in seq_along(inputModel$dataSets)) {
     results[[i]] <- inputModel$dataSets[[i]]$results
   }
-  
+
   first_column <- c()
   second_column <- c()
   third_column <- c()
   fourth_column <- c()
   fifth_column <- c()
-  
+
   for (i in seq_along(inputModel$dataSets)){
     for (j in seq_along(inputModel$networks)){
       for (k in seq_along(inputModel$networks[[j]]$nodes)){
@@ -1586,27 +1589,27 @@ generate_results_csv <- function(inputModel){
                 fifth_column <- append(fifth_column, results[[l]][[m]]$resultValues[[n]]$value)
               }
             }
-             
-            
+
+
           }
         }
       }}}
-  
+
   output_table <- cbind(Scenario = first_column,
                 Network = second_column,
                 Node = third_column,
                 State = fourth_column,
                 Probability = fifth_column)
   return(output_table)
-  
+
 }
 
 dataset_import <- function(inputModel, dataSet){
-  
+
   input_results <- rjson::fromJSON(file = dataSet)
   results_id <- input_results[[1]]$id
   results <- input_results[[1]]$results
-  
+
   for (i in seq_along(inputModel$dataSets)){
     if(inputModel$dataSets[[i]]$id == results_id){
       inputModel$dataSets[[i]]$results <- results
@@ -1625,18 +1628,18 @@ dataset_import <- function(inputModel, dataSet){
 #' @param username agena.ai cloud username
 #' @param password agena.ai cloud password
 #' @export
-#' 
+#'
 login <- function(username, password){
-  
+
   auth_endpoint <- "https://auth.agena.ai/realms/cloud/protocol/openid-connect/token"
   body <- list(client_id = "agenarisk-cloud",
                username = username,
                password = password,
                grant_type = "password")
-  
+
   response <- httr::POST(auth_endpoint, body = body, encode = "form")
   login_time <- as.integer(Sys.time())
-  
+
   if(response$status_code == 200) {
     cat("Authentication to Agena AI Cloud servers is successful\n")
     return(list(response, login_time))
@@ -1644,38 +1647,38 @@ login <- function(username, password){
     cat("Authentication failed\n")
     return(NULL)
   }
-  
+
 }
 
 
 check_auth <- function(login) {
-  
+
   'authentication checker function used in model operations such as calculate()'
   #if status == 200
-  
+
   login_time <- login[[2]]
   access_duration <- httr::content(login[[1]])$expires_in
   access_expire <- login_time + access_duration
-  
+
   refresh_duration <- httr::content(login[[1]])$refresh_expires_in
   refresh_expire <- login_time + refresh_duration
-  
+
   if (as.integer(Sys.time()) < access_expire){
     status_check <- 0 #means the login is still active
-  } 
+  }
   if (as.integer(Sys.time()) > access_expire && as.integer(Sys.time()) < refresh_expire) {
     status_check <- 1 #means login has expired but refresh token is still active
-  } 
+  }
   if (as.integer(Sys.time() > refresh_expire)){
     status_check <- 2 #means login and refresh have expired
   }
-  
+
   return(status_check)
-  
+
 }
 
 refresh_auth <- function(cur_login){
-  
+
   'authentication by refresh token. if the login access has expired but the refresh token has not
   at the time of calculation, authentication will be refreshed'
 
@@ -1684,21 +1687,21 @@ refresh_auth <- function(cur_login){
   body <- list(client_id = "agenarisk-cloud",
                refresh_token = cur_refresh_token,
                grant_type = "refresh_token")
-  
+
   response <- httr::POST(auth_endpoint, body = body, encode = "form")
   login_time <- cur_login[[2]]
-  
+
   return(list(response, login_time))
 }
 
 ###### Calculation
 
 calc_model <- function(input_model, cur_login, dataSet=NULL){
-  
+
   'backend function to create POST request for model calculation'
-  
+
   model_to_send <- generate_cmpx(input_model)
-  
+
   if(!is.null(dataSet)) {
     for (i in seq_along(input_model$dataSets)) {
       if (input_model$dataSets[[i]]$id == dataSet) {
@@ -1720,7 +1723,7 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
       dataset_to_send$results <- NULL
     }
   }
-  
+
   if (is.null(dataset_to_send) || obs_num == 0) {
     body <- list("sync-wait" = "true",
                  "model" = model_to_send$model)
@@ -1729,16 +1732,16 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
                  "model" = model_to_send$model,
                  "dataSet" = dataset_to_send)
     }
-  
-  
+
+
   calculate_endpoint <- "https://api.agena.ai/public/v1/calculate"
   access_token <- httr::content(cur_login[[1]])$access_token
-  
-  
+
+
   response <- httr::POST(calculate_endpoint, body = body,
                    httr::add_headers("Authorization" = paste("Bearer",access_token)),
                    encode = "json", httr::accept_json())
-  
+
   return(response)
 }
 
@@ -1756,7 +1759,7 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
 #' @return BN inference results in the model
 #' @export
 calculate <- function(input_model, login, dataSet=NULL) {
-  
+
   if (check_auth(login) == 2){
     cat("Authentication expired, please log in again")
     break
@@ -1776,7 +1779,7 @@ calculate <- function(input_model, login, dataSet=NULL) {
       response <- calc_model(input_model, login)
     }
   }
-  
+
   #this function returns a Model object with results field filled in
   if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
     if (!is.null(dataSet)) {
@@ -1792,9 +1795,9 @@ calculate <- function(input_model, login, dataSet=NULL) {
   } else {
     cat("Calculation failed\n")
   }
-  
+
   return(input_model)
-  
+
 }
 
 #' Create configuration object for sensitivity analysis
@@ -1811,7 +1814,7 @@ calculate <- function(input_model, login, dataSet=NULL) {
 #' @export
 create_sensitivity_config <- function(target, sensitivity_nodes, dataset = NULL, network= NULL,
                                       report_settings = NULL){
-  
+
   sens_config <- list(targetNode = target,
                       sensitivityNodes = sensitivity_nodes)
   if(!is.null(network)) {
@@ -1823,28 +1826,28 @@ create_sensitivity_config <- function(target, sensitivity_nodes, dataset = NULL,
   if(!is.null(report_settings)) {
     sens_config$report_settings <- report_settings
   }
-  
+
   return(sens_config)
 }
 
 analyse_sens <- function(input_model, cur_login, sens_config){
-  
+
   sa_endpoint <- "https://api.agena.ai/public/v1/tools/sensitivity"
-  
+
   model_to_send <- generate_cmpx(input_model)
-  
+
   body <- list("sync-wait" = "true",
                "model" = model_to_send$model,
                "sensitivityConfig" = sens_config)
-  
+
   access_token <- httr::content(cur_login[[1]])$access_token
-  
+
   response <- httr::POST(sa_endpoint, body = body,
                          httr::add_headers("Authorization" = paste("Bearer",access_token)),
                          encode = "json", httr::accept_json())
-  
+
   return(response)
-  
+
 }
 
 #' Sensitivity analysis on agena.ai cloud
@@ -1856,7 +1859,7 @@ analyse_sens <- function(input_model, cur_login, sens_config){
 #' @return sensitivity analysis report
 #' @export
 sensitivity_analysis <- function(input_model, login, sensitivity_config){
-  
+
   if (check_auth(login) == 2){
     cat("Authentication expired, please log in again")
     break
@@ -1868,7 +1871,7 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
   if (check_auth(login) == 0){
     response <- analyse_sens(input_model, login, sensitivity_config)
   }
-  
+
 
   if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
     cat("Sensitivity analysis successful\n")
@@ -1876,52 +1879,52 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
     res_filename <- paste0(input_model$id,"_sens_results.json")
     write(rjson::toJSON(results), res_filename)
     cat("A json file of the sensitivity analysis results, called \"", res_filename, "\" is created in the directory\n")
-    
-    
+
+
     result_tables <- results$tables
     tables <- vector(mode="list", length=length(result_tables))
-    
+
     for (i in seq_along(result_tables)){
       this_title <- result_tables[[i]]$title
       this_headers <- result_tables[[i]]$headerRow
       this_rows <- result_tables[[i]]$rows
-      
+
       this_columns <- vector(mode = "list", length=length(this_headers))
       for (j in seq_along(this_columns)){
         for (k in seq_along(this_rows)){
           this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
         }
       }
-      
+
       this_table <- data.frame(row.names=seq_along(this_columns[[1]]))
       for (l in 1:length(this_headers)){
         this_table$new <- this_columns[[l]]
         colnames(this_table)[[l]] <- this_headers[[l]]
       }
-      
+
       tables[[i]] <- this_table
       names(tables)[[i]] <- this_title
     }
-    
+
     OUT <- openxlsx::createWorkbook()
-    
+
     for (i in seq_along(tables)){
       openxlsx::addWorksheet(OUT, i)
     }
-    
+
     for (i in seq_along(tables)){
       openxlsx::writeData(OUT, sheet = i, x = tables[[i]])
     }
-    
+
     filename = paste0("sens_results_table",input_model$id,".xlsx")
-    
+
     if (file.exists(filename)){
       cat("Spreadsheet with sensitivity analysis result tables could not be created, a file with the name \"", filename,  "\" already exists in the directory\n")
     } else {
       openxlsx::saveWorkbook(OUT, file = filename)
       cat("The file \"", filename, "\" in the working directory contains report tables\n")
     }
-    
+
   } else {
     cat("Sensitivity analysis failed\n")
   }
@@ -1945,19 +1948,19 @@ local_api_compile <- function(){
   'currently not working as maven compiler requires the latest release
   of API and not the snapshot. and the latest release cannot be checked out
   through R'
-  
+
   cur_wd <- getwd()
   setwd("./api")
-  
+
   system2("git", args="checkout master")
   system2("git", args="pull")
-  
+
   latest_release <- system2("git", args="describe --tags --abbrev=0", stdout = TRUE)
-  
+
   system2("git", args=c("checkout", latest_release))
-  
+
   os <- Sys.info()[["sysname"]]
-  
+
   if(os == "Windows"){
     system2("powershell", args=c("mvn","clean","compile"))
   }
@@ -1970,15 +1973,15 @@ local_api_compile <- function(){
 #' Local agena.ai developer license activation
 #'
 #' sends the agena.ai developer license for activation
-#' 
+#'
 #' @param key agena.ai developer license key
 #' @export
 local_api_activate_license <- function(key){
   cur_wd <- getwd()
   setwd("./api")
-  
+
   os <- Sys.info()[["sysname"]]
-  
+
   if(os == "Windows"){
     activate_command <- paste0("'-Dexec.args=\"--keyActivate --key ",key,"\"'")
     system2("powershell", args=c("mvn", "exec:java@activate", shQuote(activate_command)))
@@ -1988,7 +1991,7 @@ local_api_activate_license <- function(key){
     system2("mvn", args=c("exec:java@activate", activate_command))
   }
 
-  
+
   setwd(cur_wd)
 }
 
@@ -1996,18 +1999,17 @@ local_api_activate_license <- function(key){
 #'
 #' @param model an R model object
 #' @param dataSet a dataSet in the model
-#' @param output file name for the output json
+#' @param output file name for the output json - just the filename using the working directory, not a full file path
 #'
 #' @return a json file for the model with results
 #' @export
 local_api_calculate <- function(model, dataSet, output){
-  
-  
+
   modelname <- paste0("local_",model$id)
   model$to_cmpx(filename=modelname)
-  
+
   model_to_send <- generate_cmpx(model)
-  
+
   for (i in seq_along(model$dataSets)) {
     if (model$dataSets[[i]]$id == dataSet) {
       dataset_to_send <- model_to_send$model$dataSets[[i]]
@@ -2017,20 +2019,20 @@ local_api_calculate <- function(model, dataSet, output){
       dataset_to_send <- NULL
     }
   }
-  
+
   datasetname <- paste0("local_",dataSet,".json")
   write(rjson::toJSON(list(dataset_to_send)),datasetname)
-  
+
   cur_wd <- getwd()
   os <- Sys.info()[["sysname"]]
-  
+
   if(os == "Windows"){
 
-    
+
     model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
-    dataset_path <- gsub("/","\\\\",paste0(cur_wd,"/",datasetname)) 
+    dataset_path <- gsub("/","\\\\",paste0(cur_wd,"/",datasetname))
     output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
-    
+
     setwd("./api")
     calc_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'`\"\"")
     system2("powershell", args=c("mvn", "exec:java@calculate", shQuote(calc_com)))
@@ -2041,44 +2043,44 @@ local_api_calculate <- function(model, dataSet, output){
     model_path <- paste0(cur_wd,"/",modelname,".cmpx")
     dataset_path <- paste0(cur_wd,"/",datasetname)
     output_path <- paste0(cur_wd,"/",output)
-    
+
     setwd("./api")
     calc_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'\"")
     system2("mvn", args=c("exec:java@calculate", calc_com))
     setwd(cur_wd)
   }
-  
+
   if (file.exists(paste0(modelname,".cmpx"))) {
     unlink(paste0(modelname,".cmpx"))
   }
   if(file.exists(datasetname)) {
       unlink(datasetname)
   }
-  
+
   if (file.exists(output_path)){
     model$import_results(output_path)
     cat("Calculation results are imported to the model object under relevant dataSet\n")
   }
-  
-  
+
+
 }
 
 #' Local agena.ai API sensitivity analysis
 #'
 #' @param model an R model object
 #' @param sens_config a sensitivity config object
-#' @param output file name for the output json
+#' @param output file name for the output json - just the filename using the working directory, not a full file path
 #'
 #' @return a json file report of the sensitivity analysis results
 #' @export
 local_api_sensitivity <- function(model, sens_config, output){
-  
-  
+
+
   modelname <- paste0("local_",model$id)
   model$to_cmpx(filename=modelname)
-  
+
   model_to_send <- generate_cmpx(model)
-  
+
   if(!is.null(sens_config$dataSet)) {
     sens_config_name <- paste0("local_",sens_config$dataSet,"_sens_config.json")
   } else {
@@ -2088,37 +2090,33 @@ local_api_sensitivity <- function(model, sens_config, output){
 
   cur_wd <- getwd()
   os <- Sys.info()[["sysname"]]
-  
+
   if(os == "Windows"){
-    
+
     model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
     sens_config_path <- gsub("/","\\\\",paste0(cur_wd,"/",sens_config_name))
     output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
-    
+
     setwd("./api")
     sens_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'`\"\"")
     system2("powershell", args=c("mvn", "exec:java@sensitivity", shQuote(sens_com)))
     setwd(cur_wd)
   }
-  
+
   if(os == "Linux" || os == "Darwin" ){
     model_path <- paste0(cur_wd,"/",modelname,".cmpx")
     sens_config_path <-  paste0(cur_wd,"/",sens_config_name)
     output_path <- paste0(cur_wd,"/",output)
-    
+
     setwd("./api")
     sens_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'\"")
     system2("mvn", args=c("exec:java@sensitivity", sens_com))
     setwd(cur_wd)
   }
-  
+
   if (file.exists(paste0(modelname,".cmpx"))) {
     unlink(paste0(modelname,".cmpx"))
   }
-  if (!is.null(datasetname)){
-    if(file.exists(datasetname)) {
-    unlink(datasetname)
-  }}
   if (file.exists(sens_config_name)) {
     unlink(sens_config_name)
   }
@@ -2135,7 +2133,7 @@ local_api_sensitivity <- function(model, sens_config, output){
 #' @export
 local_api_batch_calculate <- function(model){
 
-  
+
   for (ds in model$dataSets) {
 
     this_dataSet <- ds$id
@@ -2150,5 +2148,5 @@ local_api_batch_calculate <- function(model){
   }
   cat("\nAll cases are calculated, the model object now contains results under its dataSets\n")
 
-  
+
 }

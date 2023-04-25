@@ -11,7 +11,7 @@ local_api_sensitivity(model, sens_config, output)
 
 \item{sens_config}{a sensitivity config object}
 
-\item{output}{file name for the output json}
+\item{output}{file name for the output json - just the filename using the working directory, not a full file path}
 }
 \value{
 a json file report of the sensitivity analysis results

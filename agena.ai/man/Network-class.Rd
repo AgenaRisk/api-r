@@ -35,9 +35,9 @@ other fields are filled with defauls unless specified.}
 
 \item{\code{plot()}}{A method to plot the graphical structure of a BN network.}
 
-\item{\code{remove_node(oldNode)}}{A method to remove an existing Node object from the network. 
+\item{\code{remove_node(oldNode)}}{A method to remove an existing Node object from the network.
 Note that removing a Node from a network does not automatically remove it from its
-previous parent-child relationships in the network. You need to adjust such relationships 
+previous parent-child relationships in the network. You need to adjust such relationships
 separately on the Node level.}
 }}
 

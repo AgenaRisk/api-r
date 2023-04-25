@@ -2,7 +2,7 @@ Package: agena.ai
 Title: R wrapper for agena.ai API
 Version: 0.0.0.9000
 Authors@R: 
-    person("Erhan", "Pisirir", , "support@agenarisk.com", role = c("aut", "cre"))
+    c(person("Erhan", "Pisirir", , "erhanpisirir@gmail.com", role = c("aut", "cre")), person("Eugene", "Dementiev", , "support@agenarisk.com", role = "cph"), person("Martin", "Neil", , "martin@agenarisk.com", role = "cph"))	
 Description: R wrapper for agena.ai API.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
@@ -13,4 +13,6 @@ Imports:
 	rjson,
 	httr,
 	openxlsx,
-	Rgraphviz
+	Rgraphviz,
+	methods,
+	utils
