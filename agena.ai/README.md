@@ -20,7 +20,7 @@ agena.ai is an R environment for creating, modifying, and parsing Bayesian netwo
 To install R-Agena with `devtools`:
 
 ```r
-devtools::install_github("")
+devtools::install_github("AgenaRisk/api-r")
 ```
 
 R-Agena requires `rjson`, `httr`, `Rgraphviz`, and `openxlsx` packages installed.
