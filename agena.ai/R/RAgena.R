@@ -1054,7 +1054,7 @@ Model <- setRefClass("Model",
 #' the nodes of the imported model.
 #'
 #' @param modelPath Path to the input file
-#' @return An R model object
+#' @returns An R model object
 #' @export
 from_cmpx <- function(modelPath){
 
@@ -1173,7 +1173,7 @@ from_cmpx <- function(modelPath){
 #' based on an R model object
 #'
 #' @param inputModel an R model object
-#' @return cmpx file
+#' @returns cmpx file
 #' @export
 generate_cmpx <- function(inputModel) {
 
@@ -1456,7 +1456,7 @@ generate_cmpx <- function(inputModel) {
 #'
 #' @param inputModel an R model object
 #' @param inputData CSV file of observations
-#' @return json file
+#' @returns json file
 #' @export
 #' @importFrom utils read.csv
 create_batch_cases <- function(inputModel, inputData){
@@ -1550,7 +1550,7 @@ colname_list_generator <- function(inputModel){
 #' be filled in and used for create_batch_bases.
 #'
 #' @param inputModel an R model object
-#' @return csv file
+#' @returns csv file
 #' @export
 #' @importFrom utils write.table
 create_csv_template <- function(inputModel){
@@ -1756,15 +1756,16 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
 #' @param login an agena.ai cloud login
 #' @param dataSet a dataSet in the R model object
 #'
-#' @return BN inference results in the model
+#' @returns BN inference results in the model
 #' @export
 calculate <- function(input_model, login, dataSet=NULL) {
 
   if (check_auth(login) == 2){
     cat("Authentication expired, please log in again")
-    break
+    runfunc = FALSE
   }
   if (check_auth(login) == 1){
+    runfunc = TRUE
     new_login <- refresh_auth(login)
     if(!is.null(dataSet)){
       response <- calc_model(input_model, new_login, dataSet)
@@ -1773,6 +1774,7 @@ calculate <- function(input_model, login, dataSet=NULL) {
     }
   }
   if (check_auth(login) == 0){
+    runfunc = TRUE
     if(!is.null(dataSet)){
       response <- calc_model(input_model, login, dataSet)
     } else {
@@ -1780,20 +1782,22 @@ calculate <- function(input_model, login, dataSet=NULL) {
     }
   }
 
-  #this function returns a Model object with results field filled in
-  if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
-    if (!is.null(dataSet)) {
-      for (i in seq_along(input_model$dataSets)) {
-        if (input_model$dataSets[[i]]$id == dataSet) {
-          input_model$dataSets[[i]]$results <- httr::content(response)$results
+  if(runfunc){
+    #this function returns a Model object with results field filled in
+    if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
+      if (!is.null(dataSet)) {
+        for (i in seq_along(input_model$dataSets)) {
+          if (input_model$dataSets[[i]]$id == dataSet) {
+            input_model$dataSets[[i]]$results <- httr::content(response)$results
+          }
         }
+      } else {
+        input_model$dataSets[[1]]$results <- httr::content(response)$results
       }
+      cat("Calculation successful, Model object now contains new results\n")
     } else {
-      input_model$dataSets[[1]]$results <- httr::content(response)$results
+      cat("Calculation failed\n")
     }
-    cat("Calculation successful, Model object now contains new results\n")
-  } else {
-    cat("Calculation failed\n")
   }
 
   return(input_model)
@@ -1810,7 +1814,7 @@ calculate <- function(input_model, login, dataSet=NULL) {
 #' @param network a network in the model
 #' @param report_settings a list of report settings
 #'
-#' @return sensitivity config object
+#' @returns sensitivity config object
 #' @export
 create_sensitivity_config <- function(target, sensitivity_nodes, dataset = NULL, network= NULL,
                                       report_settings = NULL){
@@ -1856,77 +1860,80 @@ analyse_sens <- function(input_model, cur_login, sens_config){
 #' @param login an agena.ai cloud login
 #' @param sensitivity_config a sensitivity analysis config object
 #'
-#' @return sensitivity analysis report
+#' @returns sensitivity analysis report
 #' @export
 sensitivity_analysis <- function(input_model, login, sensitivity_config){
 
   if (check_auth(login) == 2){
     cat("Authentication expired, please log in again")
-    break
+    runfunc = FALSE
   }
   if (check_auth(login) == 1){
+    runfunc = TRUE
     new_login <- refresh_auth(login)
     response <- analyse_sens(input_model, new_login, sensitivity_config)
   }
   if (check_auth(login) == 0){
+    runfunc = TRUE
     response <- analyse_sens(input_model, login, sensitivity_config)
   }
 
+  if(runfunc){
+    if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
+      cat("Sensitivity analysis successful\n")
+      results <- httr::content(response)$results
+      res_filename <- paste0(input_model$id,"_sens_results.json")
+      write(rjson::toJSON(results), res_filename)
+      cat("A json file of the sensitivity analysis results, called \"", res_filename, "\" is created in the directory\n")
 
-  if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
-    cat("Sensitivity analysis successful\n")
-    results <- httr::content(response)$results
-    res_filename <- paste0(input_model$id,"_sens_results.json")
-    write(rjson::toJSON(results), res_filename)
-    cat("A json file of the sensitivity analysis results, called \"", res_filename, "\" is created in the directory\n")
 
+      result_tables <- results$tables
+      tables <- vector(mode="list", length=length(result_tables))
 
-    result_tables <- results$tables
-    tables <- vector(mode="list", length=length(result_tables))
+      for (i in seq_along(result_tables)){
+        this_title <- result_tables[[i]]$title
+        this_headers <- result_tables[[i]]$headerRow
+        this_rows <- result_tables[[i]]$rows
 
-    for (i in seq_along(result_tables)){
-      this_title <- result_tables[[i]]$title
-      this_headers <- result_tables[[i]]$headerRow
-      this_rows <- result_tables[[i]]$rows
-
-      this_columns <- vector(mode = "list", length=length(this_headers))
-      for (j in seq_along(this_columns)){
-        for (k in seq_along(this_rows)){
-          this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
+        this_columns <- vector(mode = "list", length=length(this_headers))
+        for (j in seq_along(this_columns)){
+          for (k in seq_along(this_rows)){
+            this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
+          }
         }
+
+        this_table <- data.frame(row.names=seq_along(this_columns[[1]]))
+        for (l in 1:length(this_headers)){
+          this_table$new <- this_columns[[l]]
+          colnames(this_table)[[l]] <- this_headers[[l]]
+        }
+
+        tables[[i]] <- this_table
+        names(tables)[[i]] <- this_title
       }
 
-      this_table <- data.frame(row.names=seq_along(this_columns[[1]]))
-      for (l in 1:length(this_headers)){
-        this_table$new <- this_columns[[l]]
-        colnames(this_table)[[l]] <- this_headers[[l]]
+      OUT <- openxlsx::createWorkbook()
+
+      for (i in seq_along(tables)){
+        openxlsx::addWorksheet(OUT, i)
       }
 
-      tables[[i]] <- this_table
-      names(tables)[[i]] <- this_title
-    }
+      for (i in seq_along(tables)){
+        openxlsx::writeData(OUT, sheet = i, x = tables[[i]])
+      }
 
-    OUT <- openxlsx::createWorkbook()
+      filename = paste0("sens_results_table",input_model$id,".xlsx")
 
-    for (i in seq_along(tables)){
-      openxlsx::addWorksheet(OUT, i)
-    }
+      if (file.exists(filename)){
+        cat("Spreadsheet with sensitivity analysis result tables could not be created, a file with the name \"", filename,  "\" already exists in the directory\n")
+      } else {
+        openxlsx::saveWorkbook(OUT, file = filename)
+        cat("The file \"", filename, "\" in the working directory contains report tables\n")
+      }
 
-    for (i in seq_along(tables)){
-      openxlsx::writeData(OUT, sheet = i, x = tables[[i]])
-    }
-
-    filename = paste0("sens_results_table",input_model$id,".xlsx")
-
-    if (file.exists(filename)){
-      cat("Spreadsheet with sensitivity analysis result tables could not be created, a file with the name \"", filename,  "\" already exists in the directory\n")
     } else {
-      openxlsx::saveWorkbook(OUT, file = filename)
-      cat("The file \"", filename, "\" in the working directory contains report tables\n")
+      cat("Sensitivity analysis failed\n")
     }
-
-  } else {
-    cat("Sensitivity analysis failed\n")
   }
 }
 
@@ -2001,7 +2008,7 @@ local_api_activate_license <- function(key){
 #' @param dataSet a dataSet in the model
 #' @param output file name for the output json - just the filename using the working directory, not a full file path
 #'
-#' @return a json file for the model with results
+#' @returns a json file for the model with results
 #' @export
 local_api_calculate <- function(model, dataSet, output){
 
@@ -2071,7 +2078,7 @@ local_api_calculate <- function(model, dataSet, output){
 #' @param sens_config a sensitivity config object
 #' @param output file name for the output json - just the filename using the working directory, not a full file path
 #'
-#' @return a json file report of the sensitivity analysis results
+#' @returns a json file report of the sensitivity analysis results
 #' @export
 local_api_sensitivity <- function(model, sens_config, output){
 
@@ -2129,7 +2136,7 @@ local_api_sensitivity <- function(model, sens_config, output){
 #'
 #' @param model an R model object
 #'
-#' @return a json file for the model with results
+#' @returns a json file for the model with results
 #' @export
 local_api_batch_calculate <- function(model){
 
