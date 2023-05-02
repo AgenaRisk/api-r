@@ -2,10 +2,9 @@ Package: agena.ai
 Title: R wrapper for agena.ai API
 Version: 0.0.0.9000
 Authors@R: 
-    c(person("Erhan", "Pisirir", , "erhanpisirir@gmail.com", role = c("aut", "cre")), person("Eugene", "Dementiev", , "support@agenarisk.com", role = "cph"), person("Martin", "Neil", , "martin@agenarisk.com", role = "cph"))	
-Description: R wrapper for agena.ai API.
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    c(person("Erhan", "Pisirir", , "erhanpisirir@gmail.com", role = c("aut", "cre")), person("Eugene", "Dementiev", , "support@agenarisk.com", role = "aut"), person("Martin", "Neil", , "martin@agenarisk.com", role = "aut", "cph"))	
+Description: This package provides users capabiities to work with agena.ai using the R environment. Users can create Bayesian network models from scratch or import existing models in R and export to agena.ai cloud or local API for calculations.
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
