@@ -1,0 +1,34 @@
+---
+title: "setup-local-calculation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{setup-local-calculation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(agena.ai)
+```
+
+Setting the working directory where the local api will be cloned and installed if needed
+
+```{r}
+#setwd("/Users/user/repos/api-r")
+```
+
+Creating the local agena.ai developer API environment. Requires git, Java, and maven.
+
+```{r}
+local_api_clone() 
+local_api_compile()
+local_api_activate_license("1234-ABCD-5678-EFGH")
+```

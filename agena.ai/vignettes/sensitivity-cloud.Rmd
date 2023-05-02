@@ -1,0 +1,59 @@
+---
+title: "sensitivity-cloud"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{sensitivity-cloud}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(agena.ai)
+```
+
+Setting the working directory to where we have the Models folder if needed
+
+```{r}
+#setwd("/Users/user/repos/api-r")
+```
+
+Importing an existing model from a .cmpx file
+
+```{r}
+model <- from_cmpx("CarCosts.cmpx")
+network <- model$networks[[1]]
+```
+
+
+Creating a new dataSet in the model for sensitivity analysis
+
+```{r}
+model$create_dataSet(id = "sa")
+```
+
+Creating a sensitivity analysis config object which uses all nodes for sensitivity analysis on the node total_cost, to calculate mean and variance results
+
+```{r}
+sa_config <- create_sensitivity_config(
+  target="total_cost",
+  sensitivity_nodes="*",
+  dataset="sa",
+  report_settings = list(summaryStats = c("mean", "variance"))
+)
+```
+
+Login to the agena.ai cloud servers and running the sensitivity analysis
+
+```{r}
+credentials <- login("test@example.com", "1234567890")
+
+sensitivity_analysis(model, credentials, sa_config)
+```
