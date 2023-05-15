@@ -2025,7 +2025,7 @@ local_api_activate_license <- function(key){
 local_api_calculate <- function(model, dataSet, output){
 
   modelname <- paste0("local_",model$id)
-  model$to_cmpx(filename=modelname)
+  model$to_cmpx(filename=paste0(tempdir(),"/",modelname))
 
   model_to_send <- generate_cmpx(model)
 
@@ -2040,7 +2040,7 @@ local_api_calculate <- function(model, dataSet, output){
   }
 
   datasetname <- paste0("local_",dataSet,".json")
-  write(rjson::toJSON(list(dataset_to_send)),datasetname)
+  write(rjson::toJSON(list(dataset_to_send)),paste0(tempdir(),"/",datasetname))
 
   cur_wd <- getwd()
   on.exit(setwd(cur_wd))
@@ -2048,9 +2048,8 @@ local_api_calculate <- function(model, dataSet, output){
 
   if(os == "Windows"){
 
-
-    model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
-    dataset_path <- gsub("/","\\\\",paste0(cur_wd,"/",datasetname))
+    model_path <- paste0(tempdir(),"\\",modelname,".cmpx")
+    dataset_path <- paste0(tempdir(),"\\",datasetname)
     output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
 
     setwd("./api")
@@ -2060,8 +2059,9 @@ local_api_calculate <- function(model, dataSet, output){
   }
 
   if(os == "Linux" || os == "Darwin" ){
-    model_path <- paste0(cur_wd,"/",modelname,".cmpx")
-    dataset_path <- paste0(cur_wd,"/",datasetname)
+
+    model_path <- paste0(tempdir(),"/",modelname,".cmpx")
+    dataset_path <- paste0(tempdir(),"/",datasetname)
     output_path <- paste0(cur_wd,"/",output)
 
     setwd("./api")
@@ -2070,19 +2070,10 @@ local_api_calculate <- function(model, dataSet, output){
     setwd(cur_wd)
   }
 
-  if (file.exists(paste0(modelname,".cmpx"))) {
-    unlink(paste0(modelname,".cmpx"))
-  }
-  if(file.exists(datasetname)) {
-      unlink(datasetname)
-  }
-
   if (file.exists(output_path)){
     model$import_results(output_path)
     message("Calculation results are imported to the model object under relevant dataSet\n")
   }
-
-
 }
 
 #' Local agena.ai API sensitivity analysis
@@ -2097,7 +2088,7 @@ local_api_sensitivity <- function(model, sens_config, output){
 
 
   modelname <- paste0("local_",model$id)
-  model$to_cmpx(filename=modelname)
+  model$to_cmpx(filename=paste0(tempdir(),"/",modelname))
 
   model_to_send <- generate_cmpx(model)
 
@@ -2106,7 +2097,7 @@ local_api_sensitivity <- function(model, sens_config, output){
   } else {
     sens_config_name <- paste0("local_no_data_sens_config.json")
   }
-  write(rjson::toJSON(sens_config),sens_config_name)
+  write(rjson::toJSON(sens_config),paste0(tempdir(),"/",sens_config_name))
 
   cur_wd <- getwd()
   on.exit(setwd(cur_wd))
@@ -2114,8 +2105,8 @@ local_api_sensitivity <- function(model, sens_config, output){
 
   if(os == "Windows"){
 
-    model_path <- gsub("/","\\\\",paste0(cur_wd,"/",modelname,".cmpx"))
-    sens_config_path <- gsub("/","\\\\",paste0(cur_wd,"/",sens_config_name))
+    model_path <- paste0(tempdir(),"\\",modelname,".cmpx")
+    sens_config_path <- paste0(tempdir(),"\\",sens_config_name)
     output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
 
     setwd("./api")
@@ -2125,21 +2116,14 @@ local_api_sensitivity <- function(model, sens_config, output){
   }
 
   if(os == "Linux" || os == "Darwin" ){
-    model_path <- paste0(cur_wd,"/",modelname,".cmpx")
-    sens_config_path <-  paste0(cur_wd,"/",sens_config_name)
+    model_path <- paste0(tempdir(),"/",modelname,".cmpx")
+    sens_config_path <-  paste0(tempdir(),"/",sens_config_name)
     output_path <- paste0(cur_wd,"/",output)
 
     setwd("./api")
     sens_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'\"")
     system2("mvn", args=c("exec:java@sensitivity", sens_com))
     setwd(cur_wd)
-  }
-
-  if (file.exists(paste0(modelname,".cmpx"))) {
-    unlink(paste0(modelname,".cmpx"))
-  }
-  if (file.exists(sens_config_name)) {
-    unlink(sens_config_name)
   }
 }
 
