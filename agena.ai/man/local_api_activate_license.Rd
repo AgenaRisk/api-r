@@ -9,6 +9,9 @@ local_api_activate_license(key)
 \arguments{
 \item{key}{agena.ai developer license key}
 }
+\value{
+no return value, activates user's local API license
+}
 \description{
 sends the agena.ai developer license for activation
 }

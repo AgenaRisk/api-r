@@ -6,6 +6,9 @@
 \usage{
 local_api_clone()
 }
+\value{
+no return value, used to clone local API to directory
+}
 \description{
 clones the local agena.ai developer API in the working directory
 }

@@ -11,6 +11,9 @@ login(username, password)
 
 \item{password}{agena.ai cloud password}
 }
+\value{
+no return value, used in to authenticate user credentials
+}
 \description{
 Login to agena.ai cloud
 }
