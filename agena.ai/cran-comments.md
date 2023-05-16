@@ -47,3 +47,13 @@ Done, where the code needs to alter the working directory momentarily (to access
 > *Please do not modify the global environment (e.g. by using <<-) in your functions. This is not allowed by the CRAN policies.*
 
 Only use of <<- occurs in reference class methods and is used to update reference class fields, which is required for the functionalities of the package. The functions do not modify the global environment otherwise, and it is never used outside the methods of a reference class.
+
+## Resubmission
+
+> *you missed to single quote one instance of 'agena.ai' in your description. Please add the quotes there as well.*
+
+Thanks, fixed.
+
+> *Also: Is there a link you can add as web reference for the API in the form \<https:.....\> to the description of the DESCRIPTION file with no space after 'https:' and angle brackets for auto-linking? If so please add it!*
+
+Done, the first mention of agena.ai in the description now has the link to <https://agena.ai>.
