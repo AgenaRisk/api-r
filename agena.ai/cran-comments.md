@@ -57,3 +57,7 @@ Thanks, fixed.
 > *Also: Is there a link you can add as web reference for the API in the form \<https:.....\> to the description of the DESCRIPTION file with no space after 'https:' and angle brackets for auto-linking? If so please add it!*
 
 Done, the first mention of agena.ai in the description now has the link to <https://agena.ai>.
+
+> *Please change http --> https, add trailing slashes, or follow moved content as appropriate.*
+
+Done, the URL is now <https://www.agena.ai>.
