@@ -19,13 +19,13 @@ knitr::opts_chunk$set(
 library(agena.ai)
 ```
 
-Setting the working directory where the local api will be cloned and installed if needed
+# Setting the working directory where the local api will be cloned and installed if needed
 
 ```{r}
 #setwd("/Users/user/repos/api-r")
 ```
 
-Creating the local agena.ai developer API environment. Requires git, Java, and maven.
+# Creating the local agena.ai developer API environment. Requires git, Java, and maven.
 
 ```{r}
 local_api_clone() 

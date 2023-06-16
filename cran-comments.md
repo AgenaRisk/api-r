@@ -61,3 +61,7 @@ Done, the first mention of agena.ai in the description now has the link to <http
 > *Please change http --> https, add trailing slashes, or follow moved content as appropriate.*
 
 Done, the URL is now <https://www.agena.ai>.
+
+## Resubmission for version 1.1.0
+
+This is a version update of the package with additions to cloud API functions mentioned in NEWS.md

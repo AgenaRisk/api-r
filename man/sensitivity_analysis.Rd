@@ -4,7 +4,7 @@
 \alias{sensitivity_analysis}
 \title{Sensitivity analysis on agena.ai cloud}
 \usage{
-sensitivity_analysis(input_model, login, sensitivity_config)
+sensitivity_analysis(input_model, login, sensitivity_config, debug = FALSE)
 }
 \arguments{
 \item{input_model}{an R model object}
@@ -12,6 +12,8 @@ sensitivity_analysis(input_model, login, sensitivity_config)
 \item{login}{an agena.ai cloud login}
 
 \item{sensitivity_config}{a sensitivity analysis config object}
+
+\item{debug}{boolean parameter to display debug messages or not}
 }
 \value{
 sensitivity analysis report

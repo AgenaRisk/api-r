@@ -19,26 +19,26 @@ knitr::opts_chunk$set(
 library(agena.ai)
 ```
 
-Setting the working directory to where we have the Models folder if needed
+# Setting the working directory to where we have the Models folder if needed
 
 ```{r}
 #setwd("/Users/user/repos/api-r")
 ```
 
-Importing an existing model from a .cmpx file
+# Importing an existing model from a .cmpx file
 
 ```{r}
 model <- from_cmpx("CarCosts.cmpx")
 network <- model$networks[[1]]
 ```
 
-Creating a new dataSet in the model for sensitivity analysis
+# Creating a new dataSet in the model for sensitivity analysis
 
 ```{r}
 model$create_dataSet(id = "sa")
 ```
 
-Creating a sensitivity analysis config object which uses all nodes for sensitivity analysis on the node total_cost, to calculate mean and variance results
+# Creating a sensitivity analysis config object which uses all nodes for sensitivity analysis on the node total_cost, to calculate mean and variance results
 
 ```{r}
 sa_config <- create_sensitivity_config(
@@ -49,7 +49,7 @@ sa_config <- create_sensitivity_config(
 )
 ```
 
-Running the sensitivity analysis using local agena.ai developer API
+# Running the sensitivity analysis using local agena.ai developer API
 
 ```{r}
 local_api_sensitivity(model, sa_config, 'local_sensitivity.json')

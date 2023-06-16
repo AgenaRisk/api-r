@@ -19,19 +19,19 @@ knitr::opts_chunk$set(
 library(agena.ai)
 ```
 
-Setting the working directory to where we have the Models folder if needed
+# Setting the working directory to where we have the Models folder if needed
 
 ```{r}
 #setwd("/Users/user/repos/api-r")
 ```
 
-Importing an existing model from a .cmpx file
+# Importing an existing model from a .cmpx file
 
 ```{r}
 model <- from_cmpx("CarCosts.cmpx")
 ```
 
-Defining the dataSet of interest ("mercedes"), and finding the relevant dataSet object in the model
+# Defining the dataSet of interest ("mercedes"), and finding the relevant dataSet object in the model
 
 ```{r}
 dsId <- "mercedes"
@@ -39,7 +39,7 @@ dsIndex <- which(sapply(model$dataSets, function(sds) sds$id %in% dsId))
 dataSet <- model$dataSets[[dsIndex]]
 ```
 
-Assigning certain nodes in the network so that it is easier to manipulate them (such as entering new observation)
+# Assigning certain nodes in the network so that it is easier to manipulate them (such as entering new observation)
 
 ```{r}
 network <- model$networks[[1]]
@@ -50,7 +50,7 @@ nodeReliability <- network$nodes[[which(sapply(network$nodes, function(item) ite
 nodeTotalAnnualCost <- network$nodes[[which(sapply(network$nodes, function(item) item$id %in% "total_cost"))]]
 ```
 
-Entering new observations to the selected nodes
+# Entering new observations to the selected nodes
 
 ```{r}
 model$enter_observation(dsId, node=nodeCarType$id, network=network$id, value="Small")
@@ -58,14 +58,14 @@ model$enter_observation(dsId, node=nodeMilesPerYear$id, network=network$id, valu
 model$enter_observation(dsId, node=nodeReliability$id, network=network$id, value="Low")
 ```
 
-Login to the agena.ai cloud servers and calculating the model (with correct credentials)
+# Login to the agena.ai cloud servers and calculating the model (with correct credentials)
 
 ```{r}
 credentials <- login("test@example.com", "1234567890")
 calculate(model, credentials, dataSet$id)
 ```
 
-Accessing and displaying information which now is included in the model object
+# Accessing and displaying information which now is included in the model object
 
 ```{r}
 resIndex <- which(sapply(model$dataSets[[dsIndex]]$results, function(res) res$node %in% "total_cost"))

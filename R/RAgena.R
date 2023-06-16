@@ -1006,12 +1006,12 @@ Model <- setRefClass("Model",
                        change_settings = function(settings){
                          'A method to change model settings. The input parameter settings must be a list with the correctly
                          named elements, see README.md for example.'
-                         .self$settings <<- settings
+                         settings <<- settings
                          message("Model settings updated")
                        },
                        default_settings = function(){
                          'A method to reset model settings back to default values.'
-                         .self$settings <<- list(parameterLearningLogging = FALSE,
+                         settings <<- list(parameterLearningLogging = FALSE,
                                                  discreteTails = FALSE,
                                                  sampleSizeRanked = 5,
                                                  convergence = 0.001,
@@ -1752,6 +1752,7 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
   return(response)
 }
 
+
 #' Calculate posterior probabilities in a BN on agena.ai cloud
 #'
 #'A function to send an input Bayesian network model to Agena AI Cloud servers.
@@ -1762,10 +1763,11 @@ calc_model <- function(input_model, cur_login, dataSet=NULL){
 #' @param input_model an R model object
 #' @param login an agena.ai cloud login
 #' @param dataSet a dataSet in the R model object
+#' @param debug boolean parameter to display debug messages or not
 #'
 #' @returns BN inference results in the model
 #' @export
-calculate <- function(input_model, login, dataSet=NULL) {
+calculate <- function(input_model, login, dataSet=NULL, debug=FALSE) {
 
   if (check_auth(login) == 2){
     message("Authentication expired, please log in again")
@@ -1802,8 +1804,71 @@ calculate <- function(input_model, login, dataSet=NULL) {
         input_model$dataSets[[1]]$results <- httr::content(response)$results
       }
       message("Calculation successful, Model object now contains new results\n")
-    } else {
-      message("Calculation failed\n")
+
+      if(debug){
+        debug_messages = httr::content(response)$debug
+        for (i in seq_along(debug_messages)){
+          message(paste(debug_messages[[i]][[1]],":",debug_messages[[i]][[2]],"\n"))
+        }
+      }
+    } else if (response$status_code == 202){
+      message("Your computation request is polled. Once the job is completed, the results will be obtained\n")
+      poll_url <- httr::content(response)$pollingUrl
+      poll_status = 202
+
+      while(poll_status==202){
+        #every 5 seconds
+        #also should recheck auth...
+        if (check_auth(login) == 0){
+          access_token <- httr::content(login[[1]])$access_token
+          polled_response <- httr::GET(poll_url, httr::add_headers("Authorization" = paste("Bearer",access_token)),
+                                       encode = "json", httr::accept_json())
+          poll_status <- polled_response$status_code
+        } else if (check_auth(login) == 1){
+          new_login <- refresh_auth(login)
+          access_token <- httr::content(new_login[[1]])$access_token
+          polled_response <- httr::GET(poll_url, httr::add_headers("Authorization" = paste("Bearer",access_token)),
+                                       encode = "json", httr::accept_json())
+          poll_status <- polled_response$status_code
+        } else{
+          message("Authentication expired, please log in again")
+          poll_status = 0
+        }
+        Sys.sleep(5)
+      }
+
+      if(poll_status == 200){
+        if (!is.null(dataSet)) {
+          for (i in seq_along(input_model$dataSets)) {
+            if (input_model$dataSets[[i]]$id == dataSet) {
+              input_model$dataSets[[i]]$results <- httr::content(polled_response)$results
+            }
+          }
+        } else {
+          input_model$dataSets[[1]]$results <- httr::content(polled_response)$results
+        }
+        message("Calculation successful, Model object now contains new results\n")
+      }
+
+      if(debug){
+        debug_messages = httr::content(polled_response)$debug
+        for (i in seq_along(debug_messages)){
+          message(paste(debug_messages[[i]][[1]],":",debug_messages[[i]][[2]],"\n"))
+        }
+      }
+
+      } else {
+      messages <- httr::content(polled_response)$messages
+      for (i in seq_along(messages)){
+        message(paste0(messages[[i]],"\n"))
+      }
+
+      if(debug){
+        debug_messages = httr::content(polled_response)$debug
+        for (i in seq_along(debug_messages)){
+          message(paste(debug_messages[[i]][[1]],":",debug_messages[[i]][[2]],"\n"))
+        }
+      }
     }
   }
 
@@ -1866,10 +1931,11 @@ analyse_sens <- function(input_model, cur_login, sens_config){
 #' @param input_model an R model object
 #' @param login an agena.ai cloud login
 #' @param sensitivity_config a sensitivity analysis config object
+#' @param debug boolean parameter to display debug messages or not
 #'
 #' @returns sensitivity analysis report
 #' @export
-sensitivity_analysis <- function(input_model, login, sensitivity_config){
+sensitivity_analysis <- function(input_model, login, sensitivity_config, debug=FALSE){
 
   if (check_auth(login) == 2){
     message("Authentication expired, please log in again")
@@ -1887,61 +1953,143 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config){
 
   if(runfunc){
     if (response$status_code == 200 && !is.null(httr::content(response)$results)) {
-      message("Sensitivity analysis successful\n")
+      message("Sensitivity analysis finished\n")
+      success_check = TRUE
       results <- httr::content(response)$results
       res_filename <- paste0(input_model$id,"_sens_results.json")
       write(rjson::toJSON(results), res_filename)
       message("A json file of the sensitivity analysis results, called \"", res_filename, "\" is created in the directory\n")
 
+      if(debug){
+        debug_messages = httr::content(response)$debug
+        for (i in seq_along(debug_messages)){
+          message(paste(debug_messages[[i]][[1]],":",debug_messages[[i]][[2]],"\n"))
+        }
+      }
 
-      result_tables <- results$tables
-      tables <- vector(mode="list", length=length(result_tables))
 
-      for (i in seq_along(result_tables)){
-        this_title <- result_tables[[i]]$title
-        this_headers <- result_tables[[i]]$headerRow
-        this_rows <- result_tables[[i]]$rows
+    } else if (response$status_code == 202){
+      messages <- httr::content(response)$messages
+      for (i in seq_along(messages)){
+        message(paste(messages[[i]],"\n"))
+      }
+      poll_url <- httr::content(response)$pollingUrl
+      poll_status = 202
 
-        this_columns <- vector(mode = "list", length=length(this_headers))
-        for (j in seq_along(this_columns)){
-          for (k in seq_along(this_rows)){
-            this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
+      while(poll_status==202){
+        if (check_auth(login) == 0){
+          access_token <- httr::content(login[[1]])$access_token
+          polled_response <- httr::GET(poll_url, httr::add_headers("Authorization" = paste("Bearer",access_token)),
+                                       encode = "json", httr::accept_json())
+          poll_status <- polled_response$status_code
+        } else if (check_auth(login) == 1){
+          new_login <- refresh_auth(login)
+          access_token <- httr::content(new_login[[1]])$access_token
+          polled_response <- httr::GET(poll_url, httr::add_headers("Authorization" = paste("Bearer",access_token)),
+                                       encode = "json", httr::accept_json())
+          poll_status <- polled_response$status_code
+        } else{
+          message("Authentication expired, please log in again")
+          poll_status = 0
+        }
+        Sys.sleep(10)
+      }
+
+      if (poll_status == 200){
+        results <- httr::content(polled_response)$results
+        success_check = TRUE
+        res_filename <- paste0(input_model$id,"_sens_results.json")
+        write(rjson::toJSON(results), res_filename)
+        message("A json file of the sensitivity analysis results, called \"", res_filename, "\" is created in the directory\n")
+
+        if(debug){
+          debug_messages = httr::content(polled_response)$debug
+          for (i in seq_along(debug_messages)){
+            message(paste(debug_messages[[i]][[1]],":",debug_messages[[i]][[2]],"\n"))
+          }
+        }
+      } else{
+        success_check = FALSE
+        messages <- httr::content(polled_response)$messages
+        for (i in seq_along(messages)){
+          message(paste0(messages[[i]],"\n"))
+        }
+
+        if(debug){
+          debug_messages = httr::content(polled_response)$debug
+          for (i in seq_along(debug_messages)){
+            message(paste(debug_messages[[i]][[1]],":",debug_messages[[i]][[2]],"\n"))
           }
         }
 
-        this_table <- data.frame(row.names=seq_along(this_columns[[1]]))
-        for (l in 1:length(this_headers)){
-          this_table$new <- this_columns[[l]]
-          colnames(this_table)[[l]] <- this_headers[[l]]
-        }
-
-        tables[[i]] <- this_table
-        names(tables)[[i]] <- this_title
-      }
-
-      OUT <- openxlsx::createWorkbook()
-
-      for (i in seq_along(tables)){
-        openxlsx::addWorksheet(OUT, i)
-      }
-
-      for (i in seq_along(tables)){
-        openxlsx::writeData(OUT, sheet = i, x = tables[[i]])
-      }
-
-      filename = paste0("sens_results_table",input_model$id,".xlsx")
-
-      if (file.exists(filename)){
-        message("Spreadsheet with sensitivity analysis result tables could not be created, a file with the name \"", filename,  "\" already exists in the directory\n")
-      } else {
-        openxlsx::saveWorkbook(OUT, file = filename)
-        message("The file \"", filename, "\" in the working directory contains report tables\n")
       }
 
     } else {
-      message("Sensitivity analysis failed\n")
+      success_check = FALSE
+      messages <- httr::content(response)$messages
+      for (i in seq_along(messages)){
+        message(paste0(messages[[i]],"\n"))
+      }
+
+      if(debug){
+        debug_messages = httr::content(response)$debug
+        for (i in seq_along(debug_messages)){
+          message(paste(debug_messages[[i]][[1]],":",debug_messages[[i]][[2]],"\n"))
+        }
+      }
+
     }
   }
+
+  if(success_check){
+    result_tables <- results$tables
+    tables <- vector(mode="list", length=length(result_tables))
+
+    for (i in seq_along(result_tables)){
+      this_title <- result_tables[[i]]$title
+      this_headers <- result_tables[[i]]$headerRow
+      this_rows <- result_tables[[i]]$rows
+
+      this_columns <- vector(mode = "list", length=length(this_headers))
+      for (j in seq_along(this_columns)){
+        for (k in seq_along(this_rows)){
+          this_columns[[j]] <- append(this_columns[[j]], this_rows[[k]][[j]])
+        }
+      }
+
+      this_table <- data.frame(row.names=seq_along(this_columns[[1]]))
+      for (l in 1:length(this_headers)){
+        this_table$new <- this_columns[[l]]
+        colnames(this_table)[[l]] <- this_headers[[l]]
+      }
+
+      tables[[i]] <- this_table
+      names(tables)[[i]] <- this_title
+    }
+
+    OUT <- openxlsx::createWorkbook()
+
+    for (i in seq_along(tables)){
+      openxlsx::addWorksheet(OUT, i)
+    }
+
+    for (i in seq_along(tables)){
+      openxlsx::writeData(OUT, sheet = i, x = tables[[i]])
+    }
+
+    filename = paste0("sens_results_table_",input_model$id,".xlsx")
+
+    if (file.exists(filename)){
+      filename_new = paste0("sens_results_table_",input_model$id,"_",as.integer(Sys.time()),".xlsx")
+      openxlsx::saveWorkbook(OUT, file = filename_new)
+      message("The file \"", filename_new, "\" in the working directory contains report tables\n")
+    } else {
+      openxlsx::saveWorkbook(OUT, file = filename)
+      message("The file \"", filename, "\" in the working directory contains report tables\n")
+    }
+
+  }
+
 }
 
 #' Local agena.ai API clone
@@ -2009,7 +2157,6 @@ local_api_activate_license <- function(key){
     activate_command <- paste0("-Dexec.args=\"--keyActivate --key ",key,"\"")
     system2("mvn", args=c("exec:java@activate", activate_command))
   }
-
 
   setwd(cur_wd)
 }
@@ -2086,7 +2233,6 @@ local_api_calculate <- function(model, dataSet, output){
 #' @export
 local_api_sensitivity <- function(model, sens_config, output){
 
-
   modelname <- paste0("local_",model$id)
   model$to_cmpx(filename=paste0(tempdir(),"/",modelname))
 
@@ -2138,7 +2284,6 @@ local_api_sensitivity <- function(model, sens_config, output){
 #' @export
 local_api_batch_calculate <- function(model){
 
-
   for (ds in model$dataSets) {
 
     this_dataSet <- ds$id
@@ -2152,6 +2297,4 @@ local_api_batch_calculate <- function(model){
     }
   }
   message("\nAll cases are calculated, the model object now contains results under its dataSets\n")
-
-
 }
