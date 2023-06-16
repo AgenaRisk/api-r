@@ -1028,6 +1028,7 @@ This will send a POST request to authentication server, and will return the logi
 * `input_model` is the R Model object
 * `login` is the login object created with the credentials
 * (optional) `dataSet` is the name of the dataset that contains the set of observations (`$id` of one of the `dataSets` objects) if any. If the model has only one dataset (scenario) with observations, scenario needs not be specified (it is also possible to send a model without any observations).
+* (optional) `debug` is a boolean parameter which is false by default that enables extra debugging messages to be displayed in the console.
 
 Currently servers accept a single set of observations for each calculation, if the R model has multiple datasets (scenarios), you need to specify which dataset is to be used.
 
@@ -1045,6 +1046,8 @@ calculate(example_model, example_login, dataSet_id)
 ```
 
 If calculation is successful, this function will update the R model (the relevant `dataSets$results` field in the model) with results of the calculation.
+
+The model calculation computation supports asynchronous (polling) request if the computation job takes longer than 10 seconds. The R client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
 
 If you would like to see the calculation results in a .csv format, you can use the Model method `get_results()` to generate the output file.
 
@@ -1153,7 +1156,7 @@ sensitivity_analysis(example_model, test_login, example_sens_config)
 
 This will return a spreadsheet of tables and a json file for the results. The spreadsheet contains sensitivity analysis results and probability values for each sensitivity node defined in the configuration. The results json file contains raw results data for all analysis report options defined, such as tables, tornado graphs, and curve graphs.
 
-Note that the spreadsheet of tables is not created if there is an .xlsx file with the same name in the directory, then only results json is created.
+The sensitivity analysis computation supports asynchronous (polling) request if the computation job takes longer than 10 seconds. The R client will periodically recheck the servers and obtain the results once the computation is finished (or timed out, whichever comes first).
 
 # 9. Local agena.ai API with R-Agena
 
