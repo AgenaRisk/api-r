@@ -1233,7 +1233,7 @@ In this section, some use case examples of R-Agena environment are shown.
 
 This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in agena.ai Modeller is given below:
 
-![Diet Experiment Image](/Assets/diet_image.png)
+![Diet Experiment Image](https://resources.agena.ai/materials/repos/r_diet_image.png)
 
 In this section we will create this model entirely in RAgena environment. We can start with creating first four nodes. 
 
