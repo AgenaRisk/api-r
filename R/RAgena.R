@@ -1812,13 +1812,11 @@ calculate <- function(input_model, login, dataSet=NULL, debug=FALSE) {
         }
       }
     } else if (response$status_code == 202){
-      message("Your computation request is polled. Once the job is completed, the results will be obtained\n")
+      message("Polling has started, polling for calculation results will update every 3 seconds\n")
       poll_url <- httr::content(response)$pollingUrl
       poll_status = 202
 
       while(poll_status==202){
-        #every 5 seconds
-        #also should recheck auth...
         if (check_auth(login) == 0){
           access_token <- httr::content(login[[1]])$access_token
           polled_response <- httr::GET(poll_url, httr::add_headers("Authorization" = paste("Bearer",access_token)),
@@ -1834,7 +1832,7 @@ calculate <- function(input_model, login, dataSet=NULL, debug=FALSE) {
           message("Authentication expired, please log in again")
           poll_status = 0
         }
-        Sys.sleep(5)
+        Sys.sleep(3)
       }
 
       if(poll_status == 200){
@@ -1973,6 +1971,7 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config, debug=F
       for (i in seq_along(messages)){
         message(paste(messages[[i]],"\n"))
       }
+      message("Polling has started, polling for calculation results will update every 3 seconds\n")
       poll_url <- httr::content(response)$pollingUrl
       poll_status = 202
 
@@ -1992,7 +1991,7 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config, debug=F
           message("Authentication expired, please log in again")
           poll_status = 0
         }
-        Sys.sleep(10)
+        Sys.sleep(3)
       }
 
       if (poll_status == 200){
