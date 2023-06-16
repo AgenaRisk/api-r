@@ -19,47 +19,47 @@ knitr::opts_chunk$set(
 library(agena.ai)
 ```
 
-Setting the working directory to where we have the Models folder if needed
+# Setting the working directory to where we have the Models folder if needed
 
 ```{r}
 #setwd("/Users/user/repos/api-r")
 ```
 
-Importing an existing model from a .cmpx file
+# Importing an existing model from a .cmpx file
 
 ```{r}
 model <- from_cmpx("CarCosts.cmpx")
 network <- model$networks[[1]]
 ```
 
-Creating an empty csv file template with all the networks and nodes in the model
+# Creating an empty csv file template with all the networks and nodes in the model
 
 ```{r}
 create_csv_template(model)
 ```
 
-The dataset csv is manually prepared and filled in outside the R environment
+# The dataset csv is manually prepared and filled in outside the R environment
 In this example, it now includes five scenarios with different observations, and only the columns about the observed variables are kept
 
 ```{r}
 inputData <- "CarCosts_DataSet_Modified.csv"
 ```
 
-Creating batch cases, this function creates a new .json model file in the working directory with dataSets representing all the rows in the input data
+# Creating batch cases, this function creates a new .json model file in the working directory with dataSets representing all the rows in the input data
 
 ```{r}
 create_batch_cases(model, inputData)
 ```
 
-It is possible to import the new model file back to R to work with it
+# It is possible to import the new model file back to R to work with it
 
 ```{r}
 model_with_cases <- from_cmpx("Car Costs_0 Model_Batch_Cases.json")
 ```
 
-Now model_with_cases is an R model object containing both the dataSets already existing in the model and a new dataSet for each row in the input data and it is ready to be used for calculation purposes
+# Now model_with_cases is an R model object containing both the dataSets already existing in the model and a new dataSet for each row in the input data and it is ready to be used for calculation purposes
 
-Running the local API batch calculate function to update the model object with all the results
+# Running the local API batch calculate function to update the model object with all the results
 
 ```{r}
 local_api_batch_calculate(model_with_cases)

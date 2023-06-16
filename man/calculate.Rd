@@ -4,7 +4,7 @@
 \alias{calculate}
 \title{Calculate posterior probabilities in a BN on agena.ai cloud}
 \usage{
-calculate(input_model, login, dataSet = NULL)
+calculate(input_model, login, dataSet = NULL, debug = FALSE)
 }
 \arguments{
 \item{input_model}{an R model object}
@@ -12,6 +12,8 @@ calculate(input_model, login, dataSet = NULL)
 \item{login}{an agena.ai cloud login}
 
 \item{dataSet}{a dataSet in the R model object}
+
+\item{debug}{boolean parameter to display debug messages or not}
 }
 \value{
 BN inference results in the model
