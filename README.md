@@ -199,7 +199,7 @@ To see how to create these links, see `add_network_link()` function later in thi
 * iterations (50)
 * tolerance (1)
 
-Model settings can be provided when creating a new model, if not provided the model will come with the default settings. Default settings can be changed later on (with the method `$change_settings()`), or model settings can be reset back to default values (with the method `$default_settings()`). See the correct input parameter format for these functions in the following section.
+Model settings can be provided when creating a new model, if not provided the model will come with the default settings. Default settings can be changed later on (with the method `$change_settings()`), or model settings can be reset back to default values (with the method `$default_settings()`). See the correct input parameter format for these functions in the following section. Individual fields in model setting can be adjusted by directly accessing the field too.
 
 # 4. Class Methods
 
@@ -407,6 +407,11 @@ new_settings <- list(parameterLearningLogging = TRUE,
                     tolerance = 1)
 
 example_model$change_settings(new_settings)
+```
+If you prefer to adjust only one of the setting fields, you can directly access the field, for example:
+
+```r
+example_model$settings$convergence <- 0.01
 ```
 
 ### 4.3.16 `default_settings()`
