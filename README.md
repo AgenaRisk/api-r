@@ -13,7 +13,11 @@
 
 # 1. Description
 
-agena.ai is an R environment for creating, modifying, and parsing Bayesian network models, and sending the models to agena.ai Cloud to execute calculation requests. The environment allows users to read and modify Bayesian networks from .cmpx model files, create new Bayesian networks in R and export to .cmpx and .json files locally, as well as authenticating with agena.ai Cloud for individual or batch model calculations. In the rest of this document, the R environment for agena.ai is referred to as R-Agena.
+This is an R wrapper for [agena.ai](https://www.agena.ai) which provides users capabilities to work with agena.ai using the R environment. Users can create Bayesian network models from scratch or import existing models in R and export to 'agena.ai' cloud or local API for calculations.
+
+Note: running calculations requires a valid agena.ai API license (past the initial trial period of the local API).
+
+In the rest of this document, the R environment for agena.ai is referred to as R-Agena.
 
 # 2. Prerequisites and Installation
 
@@ -542,7 +546,7 @@ library(agena.ai)
 In the R environment, `Node` objects represent the nodes in BNs, and you can create `Node` objects before creating and defining any network. To create a new node, only its id (unique identifier) is mandatory, you can define some other optional fields upon creation if desired. A new node creation function takes the following parameters where id is the only mandatory one and all others are optional:
 
 ```r
-Node$new(id, name, description, type, simulated, states)
+new("Node", id, name, description, type, simulated, states)
 
 # id parameter is mandatory
 # the rest is optional
@@ -574,19 +578,19 @@ Once a new node is created, depending on the type and number of states, other fi
 Look at the following new node creation examples:
 
 ```r
-node_one <- Node$new(id = "node_one")
+node_one <- new("Node", id = "node_one")
 ```
 
 ```r
-node_two <- Node$new(id = "node_two", name = "Second Node")
+node_two <- new("Node", id = "node_two", name = "Second Node")
 ```
 
 ```r
-node_three <- Node$new(id = "node_three", type = "Ranked")
+node_three <- new("Node", id = "node_three", type = "Ranked")
 ```
 
 ```r
-node_four <- Node$new(id = "node_four", type = "Ranked", states = c("Very low", "Low", "Medium", "High", "Very high"))
+node_four <- new("Node", id = "node_four", type = "Ranked", states = c("Very low", "Low", "Medium", "High", "Very high"))
 ```
 
 Looking up some example values in the fields that define these nodes:
@@ -715,7 +719,7 @@ Below we follow the steps from creation of node_three to the parent modification
 * Creating node_tree with only type specified:
 
 ```r
-node_three <- Node$new(id = "node_three", type = "Ranked")
+node_three <- new("Node", id = "node_three", type = "Ranked")
 ```
 * node_three$getParents()
 
@@ -822,7 +826,7 @@ node_three$addParent(node_two)
 BN Models contain networks, at least one or optionally multiple. If there are multiple networks in a model, they can be linked to each other with the use of input and output nodes. A `Network` object in R represents a network in a BN model. To create a new `Network` object, you need to specify its id (mandatory parameter), and you can also fill in the optional parameters:
 
 ```r
-Network$new(id, name, description, nodes)
+new("Network", id, name, description, nodes)
 
 # id parameter is mandatory
 # the rest is optional
@@ -833,7 +837,7 @@ Here clearly `nodes` field is the most important information for a network but y
 Below is an example of network creation with the nodes added later:
 
 ```r
-network_one <- Network$new(id = "network_one")
+network_one <- new("Network", id = "network_one")
 
 network_one$add_node(node_three)
 network_one$add_node(node_one)
@@ -847,13 +851,13 @@ The order in which nodes are added to a network is not important as long as all 
 Alternatively, you can create a new network with its nodes:
 
 ```r
-network_two <- Network$new(id = "network_two", nodes = c(node_one, node_two, node_three))
+network_two <- new("Network", id = "network_two", nodes = c(node_one, node_two, node_three))
 ```
 
 Or you can create the network with some nodes and add more nodes later on:
 
 ```r
-network_three <- Network$new(id = "network_three", nodes = c(node_one, node_three))
+network_three <- new("Network", id = "network_three", nodes = c(node_one, node_three))
 
 network_three$add_node(node_two)
 ```
@@ -875,7 +879,7 @@ network_one$plot()
 BN models consist of networks, the links between networks, and datasets (scenarios). Only the networks information is mandatory to create a new `Model` object in R. The other fields can be filled in afterwards. The new model creation function is:
 
 ```r
-Model$new(id, networks, dataSets, networkLinks)
+new("Model", id, networks, dataSets, networkLinks)
 
 # networks parameter is mandatory
 # the rest is optional
@@ -884,7 +888,7 @@ Model$new(id, networks, dataSets, networkLinks)
 For example, you can create a model with the networks defined above:
 
 ```r
-example_model <- Model$new(networks = list(network_one))
+example_model <- new("Model", networks = list(network_one))
 ```
 
 Note that even when there is only one network in the model, the input has to be a list. Networks in a model can be modified with `add_network()` and `remove_network()` functions:
@@ -1237,7 +1241,65 @@ This function will create the .cmpx file for the model and the separate .json fi
 
 In this section, some use case examples of R-Agena environment are shown. 
 
-## 10.1 Diet Experiment Model
+## 101. Asia Model
+
+This is a BN which calculates the risk of certain medical conditions such as tuberculosis, lung cancer, and bronchitis from two casual factors - smoking and whether the patient has been to Asia recently. Additionally two other pieces of evidence are available: whether the patient is suffering from dyspnoea (shortness of breath) and whether a positive or negative X-ray test result is available.
+
+We can start with creating all the nodes in the model:
+
+```r
+A <- new("Node", id="A", name="Visit to Asia?")
+S <- new("Node", id="S", name="Smoker?")
+
+TB <- new("Node", id="T", name="Has tuberculosis")
+L <- new("Node", id="L", name="Has lung cancer")
+B <- new("Node", id="B", name="Has bronchitis")
+
+TBoC <- new("Node", id="TBoC", name="Tuberculosis or cancer")
+
+X <- new("Node", id="X", name="Positive X-ray?")
+D <- new("Node", id="D", name="Dyspnoea?")
+```
+
+All the nodes are binary so we do not need to specify the type or states. Then we can add the edges between nodes, by adding relevant nodes as parents to the child nodes:
+
+```r
+TB$add_parent(A)
+L$add_parent(S)
+B$add_parent(S)
+TBoC$add_parent(TB)
+TBoC$add_parent(L)
+X$add_parent(TBoC)
+D$add_parent(TBoC)
+D$add_parent(B)
+```
+
+Now we can set the NPT values for all the nodes:
+
+```r
+A$set_probabilities(list(0.99, 0.01))
+TB$set_probabilities(list(c(0.99,0.01),c(0.95,0.05)),by_rows = FALSE)
+L$set_probabilities(list(c(0.9,0.1),c(0.99,0.01)),by_rows = FALSE)
+B$set_probabilities(list(c(0.7,0.3), c(0.4,0.6)),by_rows = FALSE)
+TBoC$set_probabilities(list(c(1,0),c(0,1),c(0,1),c(0,1)),by_rows = FALSE)
+X$set_probabilities(list(c(0.95,0.05), c(0.02,0.98)),by_rows = FALSE)
+D$set_probabilities(list(c(0.9,0.1),c(0.2,0.8),c(0.3,0.7),c(0.1,0.9)),by_rows = FALSE)
+```
+
+Now we create a network with all the nodes, and a model with the network:
+
+```r
+asia_net = new("Network", id="asia_net", nodes=c(A,S,TB,L,B,TBoC,X,D))
+asia_model = new("Model", networks = list(asia_net))
+```
+
+Now we can choose to use the model in any possible way: exporting to a .cmpx file for agena.ai modeller, sending it to agena.ai cloud, or sending it to the local agena.ai developer API for calculations. For example:
+
+```r
+asia_model$to_cmpx()
+```
+
+## 10.2 Diet Experiment Model
 
 This is a BN which uses experiment observations to estimate the parameters of a distribution. In the model structure, there are nodes for the parameters which are the underlying parameters for all the experiments and the observed values inform us about the values for these parameters. The model in agena.ai Modeller is given below:
 
@@ -1252,10 +1314,10 @@ library(agena.ai)
 
 #First we create the "mean" and "variance" nodes
 
-mean <- Node$new(id = "mean", simulated = TRUE)
+mean <- new("Node", id = "mean", simulated = TRUE)
 mean$set_expressions("Normal(0.0,100000.0)")
 
-variance <- Node$new(id = "variance", simulated = TRUE)
+variance <- new("Node", id = "variance", simulated = TRUE)
 variance$set_expressions("Uniform(0.0,50.0)")
 ```
 
@@ -1264,10 +1326,10 @@ Common variance and tau nodes:
 ```r
 #Now we create the "common variance" and its "tau" parameter nodes
 
-tau <- Node$new(id = "tau", simulated = TRUE)
+tau <- new("Node", id = "tau", simulated = TRUE)
 tau$set_expressions("Gamma(0.001,1000.0)")
 
-common_var <- Node$new(id = "common_var", name = "common variance", simulated = TRUE)
+common_var <- new("Node", id = "common_var", name = "common variance", simulated = TRUE)
 common_var$add_parent(tau)
 common_var$set_expressions("Arithmetic(1.0/tau)")
 ```
@@ -1283,7 +1345,7 @@ means_list <- vector(mode = "list", length = length(mean_names))
 for (i in seq_along(mean_names)) {
   node_id <- paste0("mean",mean_names[i])
   node_name <- paste("mean",mean_names[[i]])
-  means_list[[i]] <- Node$new(id = node_id, name = node_name, simulated = TRUE)
+  means_list[[i]] <- new("Node", id = node_id, name = node_name, simulated = TRUE)
   means_list[[i]]$add_parent(mean)
   means_list[[i]]$add_parent(variance)
   means_list[[i]]$set_expressions("Normal(mean,variance)")
@@ -1308,7 +1370,7 @@ for (i in seq_along(obs_nodes_list)) {
   
   for (j in seq_along(obs_nodes_list[[i]])) {
     node_id <- paste0("y",i,j)
-    obs_nodes_list[[i]][[j]] <- Node$new(id = node_id, simulated = TRUE)
+    obs_nodes_list[[i]][[j]] <- new("Node", id = node_id, simulated = TRUE)
     obs_nodes_list[[i]][[j]]$add_parent(common_var)
     obs_nodes_list[[i]][[j]]$add_parent(means_list[[i]])
     this_expression <- paste0("Normal(",this_mean_id,",common_var)")
@@ -1322,7 +1384,7 @@ We can create a network for all the nodes:
 ```r
 #Creating the network for all the nodes
 
-diet_network <- Network$new(id = "Hierarchical_Normal_Model_1",
+diet_network <- new("Network", id = "Hierarchical_Normal_Model_1",
                             name = "Hierarchical Normal Model")
 ```
 
@@ -1353,7 +1415,7 @@ Now we can create a model with this network:
 ```r
 # Creating a model with the network
 
-diet_model <- Model$new(networks = list(diet_network),
+diet_model <- new("Model", networks = list(diet_network),
                         id = "Diet_Experiment_Model")
 ```
 
