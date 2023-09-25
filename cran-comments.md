@@ -65,3 +65,7 @@ Done, the URL is now <https://www.agena.ai>.
 ## Resubmission for version 1.1.0
 
 This is a version update of the package with additions to cloud API functions mentioned in NEWS.md
+
+## Resubmission for version 1.1.1
+
+This is a minor patch to update the documentation and add a new vignette regarding model creation.

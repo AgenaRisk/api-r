@@ -1,6 +1,7 @@
 # agena.ai 1.1.1
 
 * Documentation updates regarding new Node, Network, and Model creation
+* A new vignette regarding Model creation is added
 
 # agena.ai 1.1.0
 
