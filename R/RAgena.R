@@ -1466,38 +1466,43 @@ generate_cmpx <- function(inputModel) {
 #' @export
 #' @importFrom utils read.csv
 create_batch_cases <- function(inputModel, inputData){
+  # Read input
+  inputTable <- read.csv(file = inputData, check.names = FALSE, na.strings = c(""))
 
-  inputTable <- read.csv(file=inputData, check.names = FALSE, na.strings = c(""))
-  col_headers <- names(inputTable)[-1]
-  obs_nodes <- c()
-  obs_networks <- c()
-  for (nm in col_headers){
-    obs_nodes <- append(obs_nodes,gsub("\\..*", "", nm))
-    obs_networks <- append(obs_networks,gsub(".*\\.", "", nm))
-  }
+  col_headers  <- names(inputTable)[-1]
+  obs_nodes    <- sub("\\..*", "",  col_headers)
+  obs_networks <- sub(".*\\.", "",  col_headers)
 
-  for (i in seq_along(inputTable)){
-    temp_id <- as.character(as.character(inputTable[i,][[1]]))
+  # --- Backup & clear existing datasets ---
+  saved_dataSets <- inputModel$dataSets
+  inputModel$dataSets <- list()  # export will now include only the batch
+
+  # --- Build one dataset per CSV row ---
+  for (i in seq_len(nrow(inputTable))) {
+    temp_id <- as.character(inputTable[i, 1])
     inputModel$create_dataSet(id = temp_id)
-    for (j in seq_along(col_headers)){
 
-      if(!is.na(inputTable[i,][[j+1]])){
-        inputModel$enter_observation(dataSet = temp_id,
-                                     node = obs_nodes[j], network = obs_networks[j],
-                                     value = inputTable[i,][[j+1]])
+    for (j in seq_along(col_headers)) {
+      val <- inputTable[i, j + 1]
+      if (!is.na(val)) {
+        inputModel$enter_observation(
+          dataSet = temp_id,
+          node    = obs_nodes[j],
+          network = obs_networks[j],
+          value   = val
+        )
       }
-
     }
-
   }
+
+  # --- Export JSON containing only the batch datasets ---
   filename <- paste0(inputModel$id, "_Batch_Cases")
   inputModel$to_json(filename = filename)
 
-  for (i in seq_along(inputTable)){
-    temp_id <- as.character(as.character(inputTable[i,][[1]]))
-    inputModel$remove_dataSet(temp_id)
-  }
+  # --- Restore original datasets (lossless) ---
+  inputModel$dataSets <- saved_dataSets
 
+  invisible(filename)
 }
 
 get_node_by_ID <- function(node_id, inputNetwork) {
