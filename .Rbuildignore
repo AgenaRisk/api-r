@@ -2,3 +2,14 @@
 ^\.Rproj\.user$
 ^.*\.RData$
 ^.*\.Rhistory$
+^doc$
+^Meta$
+
+^cran-comments\.md$
+^LICENSE\.md$
+
+^api(/|$)
+^dev(/|$)
+(^|/)(target|\.mvn)(/|$)
+
+\.(dll|so|dylib|class|jar)$
