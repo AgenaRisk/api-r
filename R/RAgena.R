@@ -1571,48 +1571,30 @@ create_csv_template <- function(inputModel){
   write.table(t(colname_list),sep = ",", file = filename, row.names = FALSE, col.names = FALSE)
 }
 
-generate_results_csv <- function(inputModel){
+generate_results_csv <- function(inputModel) {
+  out <- vector("list", length(inputModel$dataSets))  # one list per dataset
 
-  results <- vector(mode = "list", length = length(inputModel$dataSets))
+  for (l in seq_along(inputModel$dataSets)) {
+    ds_id <- inputModel$dataSets[[l]]$id
+    rlist <- inputModel$dataSets[[l]]$results
+    rows  <- vector("list", length(rlist))
 
-  for (i in seq_along(inputModel$dataSets)) {
-    results[[i]] <- inputModel$dataSets[[i]]$results
+    for (m in seq_along(rlist)) {
+      r <- rlist[[m]]
+      vals <- r$resultValues
+      rows[[m]] <- data.frame(
+        Scenario    = ds_id,
+        Network     = r$network,
+        Node        = r$node,
+        State       = vapply(vals, `[[`, character(1), "label"),
+        Probability = vapply(vals, `[[`, numeric(1),   "value"),
+        stringsAsFactors = FALSE
+      )
+    }
+    out[[l]] <- do.call(rbind, rows)
   }
 
-  first_column <- c()
-  second_column <- c()
-  third_column <- c()
-  fourth_column <- c()
-  fifth_column <- c()
-
-  for (i in seq_along(inputModel$dataSets)){
-    for (j in seq_along(inputModel$networks)){
-      for (k in seq_along(inputModel$networks[[j]]$nodes)){
-        for (l in seq_along(inputModel$dataSets)){
-          for (m in seq_along(results[[i]])){
-            if(inputModel$networks[[j]]$nodes[[k]]$id == results[[l]][[m]]$node &&
-               inputModel$networks[[j]]$id == results[[l]][[m]]$network){
-              for (n in seq_along(results[[l]][[m]]$resultValues)){
-                first_column <- append(first_column, inputModel$dataSets[[i]]$id)
-                second_column <- append(second_column, inputModel$networks[[j]]$id)
-                third_column <- append(third_column, inputModel$networks[[j]]$nodes[[k]]$id)
-                fourth_column <- append(fourth_column, results[[l]][[m]]$resultValues[[n]]$label)
-                fifth_column <- append(fifth_column, results[[l]][[m]]$resultValues[[n]]$value)
-              }
-            }
-
-
-          }
-        }
-      }}}
-
-  output_table <- cbind(Scenario = first_column,
-                Network = second_column,
-                Node = third_column,
-                State = fourth_column,
-                Probability = fifth_column)
-  return(output_table)
-
+  do.call(rbind, out)
 }
 
 dataset_import <- function(inputModel, dataSet){
