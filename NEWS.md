@@ -1,3 +1,9 @@
+# agena.ai 1.1.2
+
+* Fixed a bug in function `model$get_results` that caused erroneous rows to appear in the output
+* Vastly improved speed of `model$get_results`
+* Fixed a bug in function `create_batch_cases` that limited the number of imported cases to a very small number
+
 # agena.ai 1.1.1
 
 * Documentation updates regarding new Node, Network, and Model creation

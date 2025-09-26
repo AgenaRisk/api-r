@@ -69,3 +69,7 @@ This is a version update of the package with additions to cloud API functions me
 ## Resubmission for version 1.1.1
 
 This is a minor patch to update the documentation and add a new vignette regarding model creation.
+
+## Resubmission for version 1.1.2
+
+This update fixes critical bugs in batch calculation functions

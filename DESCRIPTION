@@ -1,6 +1,6 @@
 Package: agena.ai
 Title: R Wrapper for 'agena.ai' API
-Version: 1.1.1
+Version: 1.1.2
 Authors@R: 
     c(person("Erhan", "Pisirir", , "erhanpisirir@gmail.com", role = "aut"), person("Eugene", "Dementiev", , "support@agenarisk.com", role = c("aut","cre")), person("Martin", "Neil", , "martin@agenarisk.com", role = c("aut", "cph")))	
 Description: An R wrapper for 'agena.ai' <https://www.agena.ai> which provides users capabilities to work with 'agena.ai' using the R environment. Users can create Bayesian network models from scratch or import existing models in R and export to 'agena.ai' cloud or local API for calculations. Note: running calculations requires a valid 'agena.ai' API license (past the initial trial period of the local API).
