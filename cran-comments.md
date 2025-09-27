@@ -1,5 +1,5 @@
 ## Test environments
-- Local Windows 11, R 4.1.3 (x86_64), RStudio
+- Local Windows 10, R 4.1.3 (x86_64), RStudio
 - win-builder: R-release, R-devel (OK)
 - Vignettes build locally
 
