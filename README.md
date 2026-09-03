@@ -1169,23 +1169,37 @@ The sensitivity analysis computation supports asynchronous (polling) request if 
 
 # 9. Local agena.ai API with R-Agena
 
-Agena.ai has a [Java based API](https://github.com/AgenaRisk/api) to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller. The local API has Java and maven dependencies, which you can see on its github page in full detail. R-Agena has communication with the local agena developer API.
+Agena.ai has a Java based API to be used with agena.ai developer license. If you have the developer license, you can use the local API for calculations in addition to agena.ai modeller. R-Agena downloads and manages that API for you.
 
-To manually set up the local agena developer API, follow the instructions on the github page for the API: https://github.com/AgenaRisk/api.
-
-For the API setup, in the R environment you can use
+To install it:
 
 ```r
-local_api_clone()
+local_api_install()
 ```
 
-to clone the git repository of the API in your working directory.
+This downloads the agena.ai API, a Java runtime and the licensing components into `~/.agena.ai/tools`, which is shared with agena.ai Explorer and any other local agena.ai client, so anything already present is reused. You do not choose the Java version: the API bundle is fetched first, and the Java runtime it declares in its manifest (`Require-Java`) is the one downloaded and used to run it, so the engine always runs on the runtime it was built and tested against. A jar that declares nothing gets Java 21. If no runtime is published for your platform, a Java already installed on the machine is used instead provided it is new enough to load the jar — its version is checked, not assumed — and failing that you are told which Java to install. Nothing is written to your working directory, and nothing needs to be installed beforehand — earlier versions cloned the API's source and built it, which required git, a Java JDK and Maven on your PATH.
 
-Once the API is cloned, you can compile maven environment with:
+It is safe to leave at the top of a script. When everything is already installed it makes no network request and returns immediately, and it will **not** upgrade you to a newer version just because one exists — so a script that ran last month runs against the same engine today. To check for and install a newer version, ask for it:
 
 ```r
-local_api_compile()
+local_api_install(update = TRUE)
 ```
+
+To install an unreleased build instead of the latest release:
+
+```r
+local_api_install(channel = "snapshot")
+```
+
+Naming a channel your installed version did not come from is itself a request to switch, so this moves you onto the development builds and `local_api_install()` keeps you there afterwards.
+
+To install one exact version, older ones included:
+
+```r
+local_api_install(version = "1.043-SNAPSHOT")
+```
+
+A pinned version is installed as given rather than checked against the channel's newest, which is what makes it useful for reproducing an earlier run or bisecting a regression.
 
 and if needed, activate your agena.ai developer license with
 
@@ -1193,11 +1207,11 @@ and if needed, activate your agena.ai developer license with
 local_api_activate_license("1234-ABCD-5678-EFGH")
 ```
 
-passing on your developer license key as the parameter.
+passing on your developer license key as the parameter. `local_api_license_summary()` shows the licence currently activated on the machine, and `local_api_deactivate_license()` releases it.
 
-**!! Note that when there is a new version of the agena developer API, you need to re-run `local_api_compile()` function to update the local repository.**
+**!! `local_api_clone()` and `local_api_compile()` still work but are deprecated — they now install the bundle and warn, and will be removed in a future release. !!**
 
-Once the local API is compiled and developer license is activated, you can use the local API directly with your models defined in R. To use the local API for calculations of a model created in R:
+Once the local API is installed and the developer license is activated, you can use the local API directly with your models defined in R. To use the local API for calculations of a model created in R:
 
 ```r
 local_api_calculate(model, dataSet, output)

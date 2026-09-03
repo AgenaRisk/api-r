@@ -7,8 +7,9 @@
 local_api_clone()
 }
 \value{
-no return value, used to clone local API to directory
+the API version installed, invisibly
 }
 \description{
-clones the local agena.ai developer API in the working directory
+Deprecated. The agena.ai API is distributed as a pre-built bundle and is no longer
+cloned or compiled; this installs the bundle instead. Use \code{\link[=local_api_install]{local_api_install()}}.
 }

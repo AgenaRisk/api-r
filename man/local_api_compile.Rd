@@ -7,9 +7,9 @@
 local_api_compile()
 }
 \value{
-no return value, used to compile maven in the local API directory
+the API version installed, invisibly
 }
 \description{
-sets the version and compiles the maven environment for
-the local agena.ai developer API in the working directory
+Deprecated. The agena.ai API is distributed as a pre-built bundle and is no longer
+compiled; this installs the bundle instead. Use \code{\link[=local_api_install]{local_api_install()}}.
 }

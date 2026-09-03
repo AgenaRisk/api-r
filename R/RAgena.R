@@ -2080,45 +2080,30 @@ sensitivity_analysis <- function(input_model, login, sensitivity_config, debug=F
 
 #' Local agena.ai API clone
 #'
-#' clones the local agena.ai developer API in the working directory
-#' @returns no return value, used to clone local API to directory
+#' Deprecated. The agena.ai API is distributed as a pre-built bundle and is no longer
+#' cloned or compiled; this installs the bundle instead. Use [local_api_install()].
+#' @returns the API version installed, invisibly
 #' @export
 local_api_clone <- function(){
-  git_api_http <- "https://github.com/AgenaRisk/api.git"
-  system2("git", args=c("clone", git_api_http))
+  .Deprecated("local_api_install",
+              msg = paste("local_api_clone() is deprecated: the agena.ai API is",
+                          "distributed as a pre-built bundle and is no longer cloned.",
+                          "Call local_api_install() instead."))
+  local_api_install()
 }
 
 #' Local agena.ai API compilation
 #'
-#' sets the version and compiles the maven environment for
-#' the local agena.ai developer API in the working directory
-#' @returns no return value, used to compile maven in the local API directory
+#' Deprecated. The agena.ai API is distributed as a pre-built bundle and is no longer
+#' compiled; this installs the bundle instead. Use [local_api_install()].
+#' @returns the API version installed, invisibly
 #' @export
 local_api_compile <- function(){
-  'currently not working as maven compiler requires the latest release
-  of API and not the snapshot. and the latest release cannot be checked out
-  through R'
-
-  cur_wd <- getwd()
-  on.exit(setwd(cur_wd))
-  setwd("./api")
-
-  system2("git", args="checkout master")
-  system2("git", args="pull")
-
-  latest_release <- system2("git", args="describe --tags --abbrev=0", stdout = TRUE)
-
-  system2("git", args=c("checkout", latest_release))
-
-  os <- Sys.info()[["sysname"]]
-
-  if(os == "Windows"){
-    system2("powershell", args=c("mvn","clean","compile"))
-  }
-  if(os == "Linux" || os == "Darwin"){
-    system2("mvn", args=c("clean","compile"))
-  }
-  setwd(cur_wd)
+  .Deprecated("local_api_install",
+              msg = paste("local_api_compile() is deprecated: the agena.ai API is",
+                          "distributed as a pre-built bundle and is no longer compiled.",
+                          "Call local_api_install() instead."))
+  local_api_install()
 }
 
 #' Local agena.ai developer license activation
@@ -2129,22 +2114,48 @@ local_api_compile <- function(){
 #' @returns no return value, activates user's local API license
 #' @export
 local_api_activate_license <- function(key){
-  cur_wd <- getwd()
-  on.exit(setwd(cur_wd))
-  setwd("./api")
+  result <- .agena_engine(c("activate", "--keyActivate", "--key", shQuote(key)))
 
-  os <- Sys.info()[["sysname"]]
-
-  if(os == "Windows"){
-    activate_command <- paste0("'-Dexec.args=\"--keyActivate --key ",key,"\"'")
-    system2("powershell", args=c("mvn", "exec:java@activate", shQuote(activate_command)))
+  if (any(grepl("Product already activated", result$output, fixed = TRUE))) {
+    message("Product already activated")
+    return(invisible(NULL))
   }
-  if(os == "Linux" || os == "Darwin"){
-    activate_command <- paste0("-Dexec.args=\"--keyActivate --key ",key,"\"")
-    system2("mvn", args=c("exec:java@activate", activate_command))
+  if (any(grepl("Invalid license key", result$output, fixed = TRUE))) {
+    stop("Invalid license key")
   }
+  if (identical(.agena_license_info(result$output)$Mode, "FreeTrial")) {
+    stop("Licence key activation failed")
+  }
+  message("License key activated successfully")
+  invisible(NULL)
+}
 
-  setwd(cur_wd)
+#' Local agena.ai developer license deactivation
+#'
+#' releases the agena.ai developer license activated on this machine
+#'
+#' @returns no return value, deactivates user's local API license
+#' @export
+local_api_deactivate_license <- function(){
+  result <- .agena_engine(c("activate", "--keyDeactivate"))
+
+  limit_reached <- "The license has reached it's allowed deactivations limit"
+  if (any(grepl(limit_reached, result$output, fixed = TRUE))) stop(limit_reached)
+  if (any(grepl("Product not yet activated", result$output, fixed = TRUE))) {
+    message("Product not yet activated")
+    return(invisible(NULL))
+  }
+  if (result$status != 0) stop("Deactivation failed")
+  message("Deactivation successful")
+  invisible(NULL)
+}
+
+#' Local agena.ai developer license summary
+#'
+#' @returns a list describing the license activated on this machine
+#' @export
+local_api_license_summary <- function(){
+  .agena_license_info(.agena_engine(c("activate", "--licenseSummary", "--json"))$output)
 }
 
 #' Local agena.ai API model calculation
@@ -2158,54 +2169,40 @@ local_api_activate_license <- function(key){
 local_api_calculate <- function(model, dataSet, output){
 
   modelname <- paste0("local_",model$id)
-  model$to_cmpx(filename=paste0(tempdir(),"/",modelname))
+  model_path <- file.path(tempdir(), paste0(modelname, ".cmpx"))
+  model$to_cmpx(filename = file.path(tempdir(), modelname))
 
   model_to_send <- generate_cmpx(model)
 
+  dataset_to_send <- NULL
   for (i in seq_along(model$dataSets)) {
     if (model$dataSets[[i]]$id == dataSet) {
       dataset_to_send <- model_to_send$model$dataSets[[i]]
       dataset_to_send$results <- NULL
       break
-    } else {
-      dataset_to_send <- NULL
     }
   }
 
-  datasetname <- paste0("local_",dataSet,".json")
-  write(rjson::toJSON(list(dataset_to_send)),paste0(tempdir(),"/",datasetname))
+  dataset_path <- file.path(tempdir(), paste0("local_", dataSet, ".json"))
+  write(rjson::toJSON(list(dataset_to_send)), dataset_path)
 
-  cur_wd <- getwd()
-  on.exit(setwd(cur_wd))
-  os <- Sys.info()[["sysname"]]
-
-  if(os == "Windows"){
-
-    model_path <- paste0(tempdir(),"\\",modelname,".cmpx")
-    dataset_path <- paste0(tempdir(),"\\",datasetname)
-    output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
-
-    setwd("./api")
-    calc_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'`\"\"")
-    system2("powershell", args=c("mvn", "exec:java@calculate", shQuote(calc_com)))
-    setwd(cur_wd)
+  # The engine no longer runs with the API project as its working directory, so an
+  # output path relative to the user's working directory has to be made absolute here.
+  output_path <- if (isTRUE(startsWith(output, "/")) || grepl("^[A-Za-z]:", output)) {
+    output
+  } else {
+    file.path(getwd(), output)
   }
 
-  if(os == "Linux" || os == "Darwin" ){
-
-    model_path <- paste0(tempdir(),"/",modelname,".cmpx")
-    dataset_path <- paste0(tempdir(),"/",datasetname)
-    output_path <- paste0(cur_wd,"/",output)
-
-    setwd("./api")
-    calc_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --data '",dataset_path,"'\"")
-    system2("mvn", args=c("exec:java@calculate", calc_com))
-    setwd(cur_wd)
-  }
+  .agena_engine(c("calculate",
+                  "--model", shQuote(model_path),
+                  "--out", shQuote(output_path),
+                  "--data", shQuote(dataset_path)))
 
   if (file.exists(output_path)){
     model$import_results(output_path)
-    message("Calculation results are imported to the model object under relevant dataSet\n")
+    message("Calculation results are imported to the model object under relevant dataSet
+")
   }
 }
 
@@ -2220,43 +2217,27 @@ local_api_calculate <- function(model, dataSet, output){
 local_api_sensitivity <- function(model, sens_config, output){
 
   modelname <- paste0("local_",model$id)
-  model$to_cmpx(filename=paste0(tempdir(),"/",modelname))
-
-  model_to_send <- generate_cmpx(model)
+  model_path <- file.path(tempdir(), paste0(modelname, ".cmpx"))
+  model$to_cmpx(filename = file.path(tempdir(), modelname))
 
   if(!is.null(sens_config$dataSet)) {
     sens_config_name <- paste0("local_",sens_config$dataSet,"_sens_config.json")
   } else {
-    sens_config_name <- paste0("local_no_data_sens_config.json")
+    sens_config_name <- "local_no_data_sens_config.json"
   }
-  write(rjson::toJSON(sens_config),paste0(tempdir(),"/",sens_config_name))
+  sens_config_path <- file.path(tempdir(), sens_config_name)
+  write(rjson::toJSON(sens_config), sens_config_path)
 
-  cur_wd <- getwd()
-  on.exit(setwd(cur_wd))
-  os <- Sys.info()[["sysname"]]
-
-  if(os == "Windows"){
-
-    model_path <- paste0(tempdir(),"\\",modelname,".cmpx")
-    sens_config_path <- paste0(tempdir(),"\\",sens_config_name)
-    output_path <- gsub("/","\\\\",paste0(cur_wd,"/",output))
-
-    setwd("./api")
-    sens_com <- paste0("\"-Dexec.args=`\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'`\"\"")
-    system2("powershell", args=c("mvn", "exec:java@sensitivity", shQuote(sens_com)))
-    setwd(cur_wd)
+  output_path <- if (isTRUE(startsWith(output, "/")) || grepl("^[A-Za-z]:", output)) {
+    output
+  } else {
+    file.path(getwd(), output)
   }
 
-  if(os == "Linux" || os == "Darwin" ){
-    model_path <- paste0(tempdir(),"/",modelname,".cmpx")
-    sens_config_path <-  paste0(tempdir(),"/",sens_config_name)
-    output_path <- paste0(cur_wd,"/",output)
-
-    setwd("./api")
-    sens_com <- paste0("-Dexec.args=\"--model '",model_path,"' --out '",output_path,"' --config '",sens_config_path,"'\"")
-    system2("mvn", args=c("exec:java@sensitivity", sens_com))
-    setwd(cur_wd)
-  }
+  .agena_engine(c("sensitivity",
+                  "--model", shQuote(model_path),
+                  "--out", shQuote(output_path),
+                  "--config", shQuote(sens_config_path)))
 }
 
 
@@ -2279,8 +2260,11 @@ local_api_batch_calculate <- function(model){
       model$import_results(this_output)
       unlink(this_output)
     } else {
-      message("Error importing results from the file ",this_output,"\n")
+      message("Error importing results from the file ",this_output,"
+")
     }
   }
-  message("\nAll cases are calculated, the model object now contains results under its dataSets\n")
+  message("
+All cases are calculated, the model object now contains results under its dataSets
+")
 }

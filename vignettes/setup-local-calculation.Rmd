@@ -19,16 +19,19 @@ knitr::opts_chunk$set(
 library(agena.ai)
 ```
 
-# Setting the working directory where the local api will be cloned and installed if needed
+# Installing the local agena.ai API
+
+Everything is installed under `~/.agena.ai/tools`, shared with agena.ai Explorer and any
+other local agena.ai client. Nothing is written to the working directory, and git, Java
+and Maven are no longer needed — a Java runtime is downloaded along with the API.
 
 ```{r}
-#setwd("/Users/user/repos/api-r")
+local_api_install()
+local_api_activate_license("1234-ABCD-5678-EFGH")
 ```
 
-# Creating the local agena.ai developer API environment. Requires git, Java, and maven.
+# Checking the licence
 
 ```{r}
-local_api_clone() 
-local_api_compile()
-local_api_activate_license("1234-ABCD-5678-EFGH")
+local_api_license_summary()
 ```
