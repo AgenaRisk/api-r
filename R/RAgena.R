@@ -2114,17 +2114,24 @@ local_api_compile <- function(){
 #' @returns no return value, activates user's local API license
 #' @export
 local_api_activate_license <- function(key){
-  result <- .agena_engine(c("activate", "--keyActivate", "--key", shQuote(key)))
+  result <- .agena_engine(c("activate", "--keyActivate", "--key", shQuote(key), "--json"))
 
   if (any(grepl("Product already activated", result$output, fixed = TRUE))) {
     message("Product already activated")
     return(invisible(NULL))
   }
-  if (any(grepl("Invalid license key", result$output, fixed = TRUE))) {
-    stop("Invalid license key")
-  }
-  if (identical(.agena_license_info(result$output)$Mode, "FreeTrial")) {
-    stop("Licence key activation failed")
+
+  # The engine's own account of what happened, when it gives one. Older engines do not,
+  # so the state is checked separately below either way.
+  parsed <- .agena_result(result$output)
+  messages <- if (is.null(parsed)) NULL else parsed$messages
+  for (m in messages) message(m)
+
+  summary <- if (is.null(parsed)) local_api_license_summary() else parsed
+  if (identical(summary$Mode, "FreeTrial") || result$status != 0) {
+    stop("Licence key activation failed",
+         if (length(messages)) paste0(": ", paste(messages, collapse = "; ")) else "",
+         call. = FALSE)
   }
   message("License key activated successfully")
   invisible(NULL)
@@ -2137,7 +2144,7 @@ local_api_activate_license <- function(key){
 #' @returns no return value, deactivates user's local API license
 #' @export
 local_api_deactivate_license <- function(){
-  result <- .agena_engine(c("activate", "--keyDeactivate"))
+  result <- .agena_engine(c("activate", "--keyDeactivate", "--json"))
 
   limit_reached <- "The license has reached it's allowed deactivations limit"
   if (any(grepl(limit_reached, result$output, fixed = TRUE))) stop(limit_reached)

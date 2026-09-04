@@ -695,15 +695,48 @@ local_api_install <- function(channel = NULL, version = NULL, update = FALSE,
   list(output = output, status = if (is.null(status)) 0L else status)
 }
 
-#' Parse a licence summary from engine output
+#' The JSON result line a --json licensing operation prints, or NULL
 #'
-#' `activate --licenseSummary --json` prints the summary as a single JSON object on its
-#' own line. The previous version split the Maven log on braces and hoped the first `{`
-#' it found belonged to the summary rather than to anything else the build had printed.
+#' From engine 2.0.1 every licensing operation ends by printing one line: the licence
+#' summary, plus `operation` and -- when the engine had something to say -- `messages`.
+#' Earlier engines print such a line only for `--licenseSummary`, so its absence means
+#' "ask separately" rather than failure: a published client has to keep working against
+#' the 2.0.0 that may already be installed.
+#'
+#' The last parseable line wins. Core also prints an indented summary of its own, but
+#' that spans several lines and so never matches -- which is exactly the bug this
+#' replaced, where a successful activation was read as "no summary returned".
 #' @noRd
-.agena_license_info <- function(output) {
+.agena_result <- function(output) {
   candidates <- trimws(output)
   candidates <- candidates[grepl("^\\{.*\\}$", candidates)]
-  if (length(candidates) == 0) stop("The engine did not return a license summary")
-  rjson::fromJSON(candidates[length(candidates)])
+  if (length(candidates) == 0) return(NULL)
+
+  # Every candidate is tried, newest first, rather than only the last one: a line can
+  # look like an object and fail to parse, and giving up on the first failure would
+  # discard a good result further up. A parsed value is accepted only if it is a
+  # non-empty named list -- what fromJSON returns for a JSON object -- so a bare array
+  # or an empty {} does not reach callers expecting to read fields off it.
+  for (i in rev(seq_along(candidates))) {
+    parsed <- tryCatch(rjson::fromJSON(candidates[i]), error = function(e) NULL)
+    if (!is.null(parsed) && is.list(parsed) && length(parsed) > 0 &&
+        !is.null(names(parsed))) {
+      return(parsed)
+    }
+  }
+  NULL
+}
+
+#' As .agena_result, but for callers that require a summary
+#' @noRd
+.agena_license_info <- function(output) {
+  result <- .agena_result(output)
+  if (is.null(result)) {
+    # Quote what did arrive: with no JSON present, whatever the engine said instead is
+    # the only useful thing to report.
+    tail_line <- utils::tail(trimws(output[nzchar(trimws(output))]), 1)
+    stop("The engine did not return a license summary",
+         if (length(tail_line)) paste0(": ", tail_line) else "", call. = FALSE)
+  }
+  result
 }
