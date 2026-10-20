@@ -550,6 +550,29 @@
 #' not do. An upgrade is therefore something you ask for, never something that happens
 #' to you.
 #' @noRd
+# Written into each install's directory: which build of the version it is. The same file
+# and fields Athena (ApiDownloader.STAMP_FILE) and pyagena write, as the directory is shared.
+.AGENA_STAMP_FILE <- ".install.json"
+
+# timestamp and buildNumber of a snapshot bundle's file name; both NULL for a release.
+.agena_build_of <- function(bundle) {
+  m <- regmatches(bundle, regexec("-([0-9]{8}\\.[0-9]{6})-([0-9]+)-runtime\\.zip$", bundle))[[1]]
+  if (length(m) == 3) list(timestamp = m[2], buildNumber = m[3]) else list(timestamp = NULL, buildNumber = NULL)
+}
+
+# The installed build's timestamp and buildNumber, read from its stamp; NULLs when absent.
+.agena_installed_stamp <- function() {
+  version <- .agena_installed_version()
+  file <- if (is.null(version)) "" else file.path(.agena_api_dir(), version, .AGENA_STAMP_FILE)
+  if (!nzchar(file) || !file.exists(file)) return(list(timestamp = NULL, buildNumber = NULL))
+  text <- paste(readLines(file, warn = FALSE), collapse = "")
+  field <- function(key) {
+    m <- regmatches(text, regexec(paste0('"', key, '"\\s*:\\s*"([^"]*)"'), text))[[1]]
+    if (length(m) == 2) m[2] else NULL
+  }
+  list(timestamp = field("timestamp"), buildNumber = field("buildNumber"))
+}
+
 .agena_install_api <- function(channel = NULL, version = NULL, update = FALSE,
                                force = FALSE) {
   installed <- .agena_installed_version()
@@ -572,12 +595,18 @@
   }
   base <- .agena_repo_base(channel)
   if (is.null(version)) version <- .agena_resolve_version(channel)
-  if (!force && identical(installed, version)) {
+  name <- .agena_bundle_name(base, version)
+  build <- .agena_build_of(name)
+  # A snapshot keeps its version across every build, so the version alone cannot say
+  # whether the install is current: compare the build too.
+  stamp <- .agena_installed_stamp()
+  if (!force && identical(installed, version) &&
+      (is.null(build$timestamp) ||
+       (identical(stamp$timestamp, build$timestamp) && identical(stamp$buildNumber, build$buildNumber)))) {
     message("API ", version, " is already the newest on the ", channel, " channel")
     return(version)
   }
 
-  name <- .agena_bundle_name(base, version)
   target <- file.path(.agena_api_dir(), version)
   # Replace this version's directory only: the others are kept on purpose.
   unlink(target, recursive = TRUE, force = TRUE)
@@ -601,8 +630,19 @@
     stop("The bundle for ", version, " contained no jar")
   }
 
+  quoted <- function(x) if (is.null(x)) "null" else paste0('"', x, '"')
+  writeLines(c("{",
+               paste0('  "version": ', quoted(version), ","),
+               paste0('  "channel": ', quoted(channel), ","),
+               paste0('  "timestamp": ', quoted(build$timestamp), ","),
+               paste0('  "buildNumber": ', quoted(build$buildNumber), ","),
+               paste0('  "installedAt": ', quoted(format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))),
+               "}"),
+             file.path(target, .AGENA_STAMP_FILE))
   writeLines(version, file.path(.agena_api_dir(), "current"))
-  message("Installed API ", version, " from the ", channel, " channel")
+  message("Installed API ", version,
+          if (!is.null(build$buildNumber)) paste0(" build ", build$buildNumber) else "",
+          " from the ", channel, " channel")
 
   .agena_prune_old_versions(version)
   version
