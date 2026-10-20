@@ -1224,7 +1224,7 @@ local_api_calculate(model = example_model,
                     dataSet = example_dataset_id,
                     output = "exampe_results.json")
 ```
-This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (cloned and compiled within the working directory), obtain the calculation result values and create the output file in the working directory, and remove the model and dataSet files used for calculation from the directory. The function also updates the R Model object with the calculation results (in addition to creating the separate results.json file in the directory).
+This function will create the .cmpx file for the model and the separate .json file required for the dataSet, and send them to the local API (installed with `local_api_install()`), obtain the calculation result values and create the output file in the working directory, and remove the model and dataSet files used for calculation from the directory. The function also updates the R Model object with the calculation results (in addition to creating the separate results.json file in the directory).
 
 If you'd like to run multiple dataSets in the same model in batch, you can use `local_api_batch_calculate()` instead. This function takes an R Model object as input and runs the calculation for each dataSet in it, and fills in all the relevant result fields under each dataSet. You can use this function as
 
@@ -1249,7 +1249,7 @@ local_api_sensitivity(model = example_model,
                       output = "example_sa_results.json")
 ```
 
-This function will create the .cmpx file for the model and the separate .json files required for the dataSet and sensitivity analysis configuration file, and send them to the local API (cloned and compiled within the working directory), obtain the sensitivity analysis result values and create the output file in the working directory, and remove the model, dataSet and config files used for sensitivity analysis from the directory. `local_api_sensitivity()` looks at the `dataSet` field of `sens_config` to determine which dataSet to use, if the field doesn't exist, the default behaviour is to create a new dataSet without any observations for the sensitivity analysis.
+This function will create the .cmpx file for the model and the separate .json files required for the dataSet and sensitivity analysis configuration file, and send them to the local API (installed with `local_api_install()`), obtain the sensitivity analysis result values and create the output file in the working directory, and remove the model, dataSet and config files used for sensitivity analysis from the directory. `local_api_sensitivity()` looks at the `dataSet` field of `sens_config` to determine which dataSet to use, if the field doesn't exist, the default behaviour is to create a new dataSet without any observations for the sensitivity analysis.
 
 # 10. R-Agena Use Case Examples
 
