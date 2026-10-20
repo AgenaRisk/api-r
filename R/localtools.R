@@ -18,7 +18,10 @@
   file.path(path.expand("~"), ".agena.ai", "tools")
 }
 
-.agena_api_dir <- function() file.path(.agena_tools_dir(), "api")
+# <tools>/core: each artifact installs under its own directory (the artifact id's last part),
+# so the versions of different artifacts, which mean nothing relative to each other, are
+# never compared.
+.agena_api_dir <- function() file.path(.agena_tools_dir(), sub(".*\\.", "", .AGENA_ARTIFACT_ID))
 # Java major the installed api jar asks for, or the default when it says nothing.
 #
 # Read from the jar's Require-Java manifest attribute. The jar is the only thing that
@@ -79,7 +82,8 @@
 .AGENA_REPO_RELEASE <- "https://mvn.agenarisk.com/repository/internal"
 .AGENA_REPO_SNAPSHOT <- "https://mvn.agenarisk.com/repository/snapshots"
 .AGENA_GROUP_ID <- "com.agenarisk"
-.AGENA_ARTIFACT_ID <- "com.agenarisk.api"
+# The engine. The API project was merged into core (ARC-324), so this is core's artifact.
+.AGENA_ARTIFACT_ID <- "com.agenarisk.core"
 
 .AGENA_LICENSING_URL <- "https://resources.agena.ai/download/archive/lib-v3.44.0.zip"
 .AGENA_PRODUCT_URL <- "https://resources.agena.ai/products/v3/developer/product.json"
