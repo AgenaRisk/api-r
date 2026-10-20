@@ -211,7 +211,16 @@
 #' distrusts <latest> for the same reason.
 #' @noRd
 .agena_resolve_version <- function(channel) {
-  xml <- .agena_get_text(paste0(.agena_repo_base(channel), "/maven-metadata.xml"))
+  url <- paste0(.agena_repo_base(channel), "/maven-metadata.xml")
+  # base::url() reports a 404 only as a warning beside a generic "cannot open the
+  # connection", so ask for the status first.
+  status <- tryCatch(attr(curlGetHeaders(url), "status"), error = function(e) NA)
+  if (identical(status, 404L)) {
+    stop("Nothing of ", .AGENA_ARTIFACT_ID, " is published on the ", channel, " channel yet.",
+         if (identical(channel, "release")) " Pass channel = \"snapshot\" for unreleased builds." else "",
+         call. = FALSE)
+  }
+  xml <- .agena_get_text(url)
   matches <- regmatches(xml, gregexpr("<version>[^<]+</version>", xml))[[1]]
   if (length(matches) == 0) {
     stop("No versions published on the ", channel, " channel")
@@ -576,11 +585,17 @@
 .agena_install_api <- function(channel = NULL, version = NULL, update = FALSE,
                                force = FALSE) {
   installed <- .agena_installed_version()
+  # Releases only, unless snapshots are asked for: channel = "snapshot", or a pinned
+  # snapshot version. Otherwise "release" whatever is installed, so a snapshot is never
+  # picked up by accident, and with one installed a plain call moves to the newest release.
+  if (is.null(channel)) {
+    channel <- if (!is.null(version)) .agena_channel_of(version) else "release"
+  }
 
   if (!is.null(installed) && !force) {
     asked <- update ||
       (!is.null(version) && !identical(version, installed)) ||
-      (!is.null(channel) && !identical(.agena_channel_of(installed), channel))
+      !identical(.agena_channel_of(installed), channel)
     if (!asked) {
       message("Using API ", installed,
               ". Call local_api_install(update = TRUE) to check for a newer one")
@@ -588,11 +603,6 @@
     }
   }
 
-  # Stay on the channel the current install came from unless told otherwise, so an
-  # update = TRUE in a developer's script does not quietly move them back to releases.
-  if (is.null(channel)) {
-    channel <- if (!is.null(installed)) .agena_channel_of(installed) else "release"
-  }
   base <- .agena_repo_base(channel)
   if (is.null(version)) version <- .agena_resolve_version(channel)
   name <- .agena_bundle_name(base, version)
@@ -659,18 +669,19 @@
 #' Replaces `local_api_clone()` and `local_api_compile()` -- there is no git, Maven or
 #' JDK involved, and nothing is written to the working directory.
 #'
-#' Safe to call at the top of a script. Anything already installed is left exactly as it
-#' is, no network request is made, and it returns immediately -- so a script beginning
-#' with this line works on a fresh machine and stays on one engine version thereafter.
-#' Upgrading is opt-in: pass `update = TRUE`.
+#' Safe to call at the top of a script. Anything already installed on the channel asked
+#' for is left exactly as it is, no network request is made, and it returns immediately --
+#' so a script beginning with this line works on a fresh machine and stays on one engine
+#' version thereafter. Upgrading is opt-in: pass `update = TRUE`. The channel is
+#' "release" unless `channel = "snapshot"` is passed.
 #'
 #' Components are installed under `~/.agena.ai/tools`, shared with agena.ai Explorer and
 #' any other local agena.ai client, so anything already present is reused. Set the
 #' environment variable `AGENA_TOOLS_DIR` to install elsewhere.
 #'
-#' @param channel "release" or "snapshot" for unreleased builds. Defaults to the channel
-#'   the installed version came from, or "release" on a fresh machine. Naming the other
-#'   channel is itself a request to switch to it
+#' @param channel "release" (the default) or "snapshot" for unreleased builds. Snapshots
+#'   are used only when asked for here or by pinning a snapshot version; with a snapshot
+#'   installed, a call without it moves to the newest release
 #' @param version pin an exact version instead of resolving the newest
 #' @param update check the channel for a newer version and install it if there is one
 #' @param force reinstall even when the components are already present

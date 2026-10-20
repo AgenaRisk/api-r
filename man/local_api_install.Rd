@@ -7,9 +7,9 @@
 local_api_install(channel = NULL, version = NULL, update = FALSE, force = FALSE)
 }
 \arguments{
-\item{channel}{"release" or "snapshot" for unreleased builds. Defaults to the channel
-the installed version came from, or "release" on a fresh machine. Naming the other
-channel is itself a request to switch to it}
+\item{channel}{"release" (the default) or "snapshot" for unreleased builds. Snapshots
+are used only when asked for here or by pinning a snapshot version; with a snapshot
+installed, a call without it moves to the newest release}
 
 \item{version}{pin an exact version instead of resolving the newest}
 
@@ -27,10 +27,11 @@ Replaces \code{local_api_clone()} and \code{local_api_compile()} -- there is no 
 JDK involved, and nothing is written to the working directory.
 }
 \details{
-Safe to call at the top of a script. Anything already installed is left exactly as it
-is, no network request is made, and it returns immediately -- so a script beginning
-with this line works on a fresh machine and stays on one engine version thereafter.
-Upgrading is opt-in: pass \code{update = TRUE}.
+Safe to call at the top of a script. Anything already installed on the channel asked
+for is left exactly as it is, no network request is made, and it returns immediately --
+so a script beginning with this line works on a fresh machine and stays on one engine
+version thereafter. Upgrading is opt-in: pass \code{update = TRUE}. The channel is
+"release" unless \code{channel = "snapshot"} is passed.
 
 Components are installed under \verb{~/.agena.ai/tools}, shared with agena.ai Explorer and
 any other local agena.ai client, so anything already present is reused. Set the
