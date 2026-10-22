@@ -508,34 +508,218 @@
 # The API bundle
 # ---------------------------------------------------------------------------------
 
+# Written into each install's directory: which build of the version it is. The same file
+# and fields Athena (ApiDownloader.STAMP_FILE) and pyagena write, as the directory is shared.
+.AGENA_STAMP_FILE <- ".install.json"
+
+# Names the directory of the build in use, not its version. Read by Athena, pyagena and
+# the bench too.
+.AGENA_CURRENT_FILE <- "current"
+
+# A new build being unpacked, and a pruned one awaiting removal. Both sit beside the
+# installs, and the leading dot keeps them out of the installs.
+.AGENA_STAGING_PREFIX <- ".staging-"
+.AGENA_RETIRED_PREFIX <- ".retired-"
+
+# How long moving a new build into place keeps retrying a rename that something is
+# briefly blocking.
+.AGENA_RENAME_RETRY_SECONDS <- 5
+
+# The directory name `current` holds, or NULL when nothing is installed.
+#' @noRd
+.agena_current_folder <- function() {
+  pointer <- file.path(.agena_api_dir(), .AGENA_CURRENT_FILE)
+  if (!file.exists(pointer)) return(NULL)
+  folder <- trimws(paste(readLines(pointer, warn = FALSE), collapse = ""))
+  if (nzchar(folder)) folder else NULL
+}
+
+#' @noRd
+.agena_installed_path <- function() {
+  folder <- .agena_current_folder()
+  if (is.null(folder)) return(NULL)
+  directory <- file.path(.agena_api_dir(), folder)
+  if (dir.exists(directory)) directory else NULL
+}
+
+# The stamp in an install directory as a list, or NULL when it has none. Read with a
+# pattern rather than rjson, so provisioning depends on base R alone (see
+# .agena_get_text); a field that is null or absent reads as NULL.
+#' @noRd
+.agena_read_stamp <- function(directory) {
+  file <- file.path(directory, .AGENA_STAMP_FILE)
+  if (!file.exists(file)) return(NULL)
+  text <- tryCatch(paste(readLines(file, warn = FALSE), collapse = ""),
+                   error = function(e) NULL)
+  if (is.null(text)) return(NULL)
+  field <- function(key) {
+    m <- regmatches(text, regexec(paste0('"', key, '"\\s*:\\s*"([^"]*)"'), text))[[1]]
+    if (length(m) == 2) m[2] else NULL
+  }
+  stamp <- list()
+  for (key in c("version", "channel", "timestamp", "buildNumber", "installedAt")) {
+    stamp[[key]] <- field(key)
+  }
+  stamp
+}
+
+# Version of the installed API, or NULL. From the stamp, since the directory name carries
+# the build too (2.0.0-SNAPSHOT-34, or 2.0.0-SNAPSHOT-34-r2 for a reinstall of it); an
+# install from before stamps existed is named after its version alone.
 #' @noRd
 .agena_installed_version <- function() {
-  pointer <- file.path(.agena_api_dir(), "current")
-  if (!file.exists(pointer)) return(NULL)
-  version <- trimws(paste(readLines(pointer, warn = FALSE), collapse = ""))
-  if (dir.exists(file.path(.agena_api_dir(), version))) version else NULL
+  directory <- .agena_installed_path()
+  if (is.null(directory)) return(NULL)
+  version <- .agena_read_stamp(directory)$version
+  if (is.character(version) && nzchar(version)) version else basename(directory)
+}
+
+#' @noRd
+.agena_engine_jars <- function(directory) {
+  jars <- list.files(directory, pattern = "\\.jar$")
+  jars[!grepl("-javadoc|-sources", jars)]
 }
 
 #' @noRd
 .agena_jar_path <- function() {
-  version <- .agena_installed_version()
-  if (is.null(version)) return(NULL)
-  directory <- file.path(.agena_api_dir(), version)
-  jars <- list.files(directory, pattern = "\\.jar$")
-  jars <- jars[!grepl("-javadoc|-sources", jars)]
+  directory <- .agena_installed_path()
+  if (is.null(directory)) return(NULL)
+  jars <- .agena_engine_jars(directory)
   if (length(jars) == 0) return(NULL)
   file.path(directory, sort(jars)[1])
 }
 
+# timestamp and buildNumber of a snapshot bundle's file name; both NULL for a release.
+.agena_build_of <- function(bundle) {
+  m <- regmatches(bundle, regexec("-([0-9]{8}\\.[0-9]{6})-([0-9]+)-runtime\\.zip$", bundle))[[1]]
+  if (length(m) == 3) list(timestamp = m[2], buildNumber = m[3]) else list(timestamp = NULL, buildNumber = NULL)
+}
+
+# The installed build's stamp (version, channel, timestamp, buildNumber); an empty list
+# when absent, so its fields read as NULL.
+.agena_installed_stamp <- function() {
+  directory <- .agena_installed_path()
+  stamp <- if (is.null(directory)) NULL else .agena_read_stamp(directory)
+  if (is.null(stamp)) list() else stamp
+}
+
+# UTC time in the form Athena stamps (2026-10-22T15:09:30.913Z), so they sort together.
 #' @noRd
-.agena_prune_old_versions <- function(keep) {
+.agena_iso_time <- function(time = Sys.time()) {
+  format(time, "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC")
+}
+
+#' @noRd
+.agena_millis <- function() sprintf("%.0f", as.numeric(Sys.time()) * 1000)
+
+# The directory a build installs into: a release under its version, a snapshot under its
+# version and build number, since every push republishes 2.0.0-SNAPSHOT.
+#' @noRd
+.agena_build_folder_name <- function(version, build) {
+  if (!grepl("-SNAPSHOT$", version)) return(version)
+  if (!is.null(build$buildNumber)) return(paste0(version, "-", build$buildNumber))
+  if (!is.null(build$timestamp)) return(paste0(version, "-", build$timestamp))
+  paste0(version, "-", .agena_millis())
+}
+
+# `name`, or `name-r2`, `name-r3`... when a directory of that name exists. Reinstalling
+# the build already in use is the case: its directory may be a running engine's, so it is
+# left alone and the reinstall goes beside it.
+#' @noRd
+.agena_free_folder_name <- function(name) {
+  candidate <- name
+  n <- 2
+  while (file.exists(file.path(.agena_api_dir(), candidate))) {
+    candidate <- paste0(name, "-r", n)
+    n <- n + 1
+  }
+  candidate
+}
+
+# Rename, retrying while Windows refuses it: a virus scanner reading the newly unpacked
+# files clears in a moment. file.rename reports no cause, so every refusal is retried,
+# except the one retrying cannot cure.
+#' @noRd
+.agena_rename_retrying <- function(from, to) {
+  until <- Sys.time() + .AGENA_RENAME_RETRY_SECONDS
+  repeat {
+    if (file.exists(to)) return(FALSE)
+    if (suppressWarnings(file.rename(from, to))) return(TRUE)
+    if (Sys.time() > until) return(FALSE)
+    Sys.sleep(0.25)
+  }
+}
+
+# Staging and retired directories an interrupted install left behind.
+#' @noRd
+.agena_remove_leftovers <- function() {
+  names <- list.files(.agena_api_dir(), all.files = TRUE, no.. = TRUE)
+  leftovers <- names[startsWith(names, .AGENA_STAGING_PREFIX) |
+                     startsWith(names, .AGENA_RETIRED_PREFIX)]
+  for (name in leftovers) {
+    unlink(file.path(.agena_api_dir(), name), recursive = TRUE, force = TRUE)
+  }
+  invisible(NULL)
+}
+
+# Whether a directory holds an installed bundle, rather than being some other thing.
+# Installs made before stamps existed still have the jar at their root, which other
+# directories here (the bench's build/) do not.
+#' @noRd
+.agena_looks_like_install <- function(directory) {
+  file.exists(file.path(directory, .AGENA_STAMP_FILE)) ||
+    length(.agena_engine_jars(directory)) > 0
+}
+
+# Keep the newest build of each of the newest .AGENA_KEEP_VERSIONS versions, plus
+# whatever is current; older builds of a version are superseded outright.
+#
+# The previous build's directory may still be in use by an engine started from it
+# (Explorer's engine service, or another session). It is renamed aside before it is
+# deleted, because a rename is refused whole while a jar inside is open, where a delete
+# stops part way. A directory still in use is left for a later install.
+#' @noRd
+.agena_prune_old_builds <- function() {
   tryCatch({
-    directories <- list.dirs(.agena_api_dir(), recursive = FALSE, full.names = FALSE)
-    ordered <- .agena_version_sort_desc(directories)
-    for (directory in utils::tail(ordered, -.AGENA_KEEP_VERSIONS)) {
-      if (identical(directory, keep)) next
-      unlink(file.path(.agena_api_dir(), directory), recursive = TRUE, force = TRUE)
-      message("Removed superseded API install ", directory)
+    root <- .agena_api_dir()
+    # all.files = FALSE leaves out the dot-named staging and retired directories.
+    names <- list.files(root, all.files = FALSE)
+    directories <- file.path(root, names)
+    directories <- directories[dir.exists(directories)]
+    directories <- directories[vapply(directories, .agena_looks_like_install, logical(1))]
+    if (length(directories) == 0) return(invisible(NULL))
+
+    stamps <- lapply(directories, .agena_read_stamp)
+    versions <- vapply(seq_along(directories), function(i) {
+      v <- stamps[[i]]$version
+      if (is.character(v) && nzchar(v)) v else basename(directories[i])
+    }, character(1))
+    installed_at <- vapply(seq_along(directories), function(i) {
+      at <- stamps[[i]]$installedAt
+      if (is.character(at) && nzchar(at)) at else .agena_iso_time(file.info(directories[i])$mtime)
+    }, character(1))
+
+    # Newest build of each version. Radix ordering compares bytes, as the timestamps need;
+    # the default collation can skip punctuation.
+    newest_build <- vapply(unique(versions), function(v) {
+      index <- which(versions == v)
+      directories[index[order(installed_at[index], decreasing = TRUE, method = "radix")[1]]]
+    }, character(1))
+    ordered <- .agena_version_sort_desc(unique(versions))
+    keep <- unname(newest_build[utils::head(ordered, .AGENA_KEEP_VERSIONS)])
+    current <- .agena_current_folder()
+    if (!is.null(current)) keep <- c(keep, file.path(root, current))
+
+    for (directory in setdiff(directories, keep)) {
+      name <- basename(directory)
+      retired <- file.path(root, paste0(.AGENA_RETIRED_PREFIX, name, "-", Sys.getpid(), "-",
+                                        .agena_millis()))
+      if (!suppressWarnings(file.rename(directory, retired))) {
+        message("Kept superseded API install ", name, " for now: it is in use")
+        next
+      }
+      unlink(retired, recursive = TRUE, force = TRUE)
+      message("Removed superseded API install ", name)
     }
   }, error = function(e) {
     # Housekeeping: failing to prune must never fail an install.
@@ -558,30 +742,14 @@
 #' could use two different engines, which is exactly what a reproducible analysis must
 #' not do. An upgrade is therefore something you ask for, never something that happens
 #' to you.
+#'
+#' Each build installs into a directory of its own -- <tools>/core/<version>/ for a
+#' release, <tools>/core/<version>-<build>/ for a snapshot, with -r2, -r3... added when
+#' that directory exists -- and `current` names the one in use. Nothing installed is
+#' touched, since an engine running from it holds its jars open: on Windows such a
+#' directory can be neither deleted nor renamed. The layout is Explorer's
+#' (ApiDownloader), as the directory is shared.
 #' @noRd
-# Written into each install's directory: which build of the version it is. The same file
-# and fields Athena (ApiDownloader.STAMP_FILE) and pyagena write, as the directory is shared.
-.AGENA_STAMP_FILE <- ".install.json"
-
-# timestamp and buildNumber of a snapshot bundle's file name; both NULL for a release.
-.agena_build_of <- function(bundle) {
-  m <- regmatches(bundle, regexec("-([0-9]{8}\\.[0-9]{6})-([0-9]+)-runtime\\.zip$", bundle))[[1]]
-  if (length(m) == 3) list(timestamp = m[2], buildNumber = m[3]) else list(timestamp = NULL, buildNumber = NULL)
-}
-
-# The installed build's timestamp and buildNumber, read from its stamp; NULLs when absent.
-.agena_installed_stamp <- function() {
-  version <- .agena_installed_version()
-  file <- if (is.null(version)) "" else file.path(.agena_api_dir(), version, .AGENA_STAMP_FILE)
-  if (!nzchar(file) || !file.exists(file)) return(list(timestamp = NULL, buildNumber = NULL))
-  text <- paste(readLines(file, warn = FALSE), collapse = "")
-  field <- function(key) {
-    m <- regmatches(text, regexec(paste0('"', key, '"\\s*:\\s*"([^"]*)"'), text))[[1]]
-    if (length(m) == 2) m[2] else NULL
-  }
-  list(timestamp = field("timestamp"), buildNumber = field("buildNumber"))
-}
-
 .agena_install_api <- function(channel = NULL, version = NULL, update = FALSE,
                                force = FALSE) {
   installed <- .agena_installed_version()
@@ -617,16 +785,21 @@
     return(version)
   }
 
-  target <- file.path(.agena_api_dir(), version)
-  # Replace this version's directory only: the others are kept on purpose.
-  unlink(target, recursive = TRUE, force = TRUE)
-  dir.create(.agena_api_dir(), recursive = TRUE, showWarnings = FALSE)
+  root <- .agena_api_dir()
+  dir.create(root, recursive = TRUE, showWarnings = FALSE)
+  .agena_remove_leftovers()
+  folder <- .agena_free_folder_name(.agena_build_folder_name(version, build))
+  target <- file.path(root, folder)
+  # Unpacked under a staging name so a half-written build never looks installed.
+  staging <- file.path(root, paste0(.AGENA_STAGING_PREFIX, version, "-", Sys.getpid(), "-",
+                                    .agena_millis()))
+  on.exit(unlink(staging, recursive = TRUE, force = TRUE), add = TRUE)
 
   # A version can resolve perfectly well and still have no bundle: releases made before
   # the runtime bundle existed publish only a bare jar. Saying so beats handing back a
   # download error and a URL.
   tryCatch(
-    .agena_install_archive(paste0(base, "/", version, "/", name), target,
+    .agena_install_archive(paste0(base, "/", version, "/", name), staging,
                            character(0), force = TRUE),
     error = function(e) {
       stop("Could not download the runtime bundle for ", version, " from the ", channel,
@@ -635,8 +808,7 @@
            conditionMessage(e), call. = FALSE)
     }
   )
-  if (length(list.files(target, pattern = "\\.jar$")) == 0) {
-    unlink(target, recursive = TRUE, force = TRUE)
+  if (length(.agena_engine_jars(staging)) == 0) {
     stop("The bundle for ", version, " contained no jar")
   }
 
@@ -646,15 +818,22 @@
                paste0('  "channel": ', quoted(channel), ","),
                paste0('  "timestamp": ', quoted(build$timestamp), ","),
                paste0('  "buildNumber": ', quoted(build$buildNumber), ","),
-               paste0('  "installedAt": ', quoted(format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))),
+               paste0('  "installedAt": ', quoted(.agena_iso_time())),
                "}"),
-             file.path(target, .AGENA_STAMP_FILE))
-  writeLines(version, file.path(.agena_api_dir(), "current"))
+             file.path(staging, .AGENA_STAMP_FILE))
+  if (!.agena_rename_retrying(staging, target)) {
+    stop("Could not put the engine ", version, " in place at ", target,
+         "; the installed engine is unchanged", call. = FALSE)
+  }
+
+  # Last, so until here the previous build is the installed one in every respect. No
+  # trailing newline, as Explorer writes it.
+  writeLines(folder, file.path(root, .AGENA_CURRENT_FILE), sep = "")
   message("Installed API ", version,
           if (!is.null(build$buildNumber)) paste0(" build ", build$buildNumber) else "",
-          " from the ", channel, " channel")
+          " from the ", channel, " channel to ", target)
 
-  .agena_prune_old_versions(version)
+  .agena_prune_old_builds()
   version
 }
 
